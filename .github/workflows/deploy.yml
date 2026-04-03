@@ -1,0 +1,78 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  build:
+    name: Build & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Functions dependencies
+        run: cd functions && npm ci && cd ..
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build React app
+        run: npm run build
+
+      - name: Build Functions
+        run: cd functions && npm run build && cd ..
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Upload functions build
+        uses: actions/upload-artifact@v4
+        with:
+          name: functions-lib
+          path: functions/lib/
+
+  deploy:
+    name: Deploy to Firebase
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Download functions build
+        uses: actions/download-artifact@v4
+        with:
+          name: functions-lib
+          path: functions/lib/
+
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@v3
+        with:
+          args: deploy --only hosting,functions,firestore
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}

@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 functions/lib
+.firebase
+emulator-data
 *.local
 
 # Editor directories and files

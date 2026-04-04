@@ -11,7 +11,9 @@ router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
   const { name, espnEventId, startDate, endDate } = req.body;
 
   if (!name || !startDate || !endDate) {
-    res.status(400).json({ error: "name, startDate, and endDate are required" });
+    res
+      .status(400)
+      .json({ error: "name, startDate, and endDate are required" });
     return;
   }
 
@@ -71,7 +73,7 @@ router.post(
 
     await batch.commit();
     res.status(201).json({ playerIds: ids, count: ids.length });
-  }
+  },
 );
 
 // POST /tournaments/:tournamentId/sync-espn — Map players to ESPN IDs (admin only)
@@ -97,7 +99,11 @@ router.post(
       .get();
 
     if (playersSnap.empty) {
-      res.json({ message: "No unmapped players found", matched: [], unmatched: [] });
+      res.json({
+        message: "No unmapped players found",
+        matched: [],
+        unmatched: [],
+      });
       return;
     }
 
@@ -132,7 +138,7 @@ router.post(
       matchedPlayers: matched,
       unmatchedPlayers: unmatched,
     });
-  }
+  },
 );
 
 // PUT /players/:playerId/espn-link — Manually link a player to ESPN ID (admin only)
@@ -158,7 +164,7 @@ router.put(
 
     await playerRef.update({ espnId, espnMapped: true });
     res.json({ success: true });
-  }
+  },
 );
 
 export default router;

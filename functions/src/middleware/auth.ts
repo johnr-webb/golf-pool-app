@@ -13,9 +13,10 @@ export interface AuthRequest extends Request {
 export async function requireAuth(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   const header = req.headers.authorization;
+  console.debug(`Checking header for authorization: ${header}`);
   if (!header || !header.startsWith("Bearer ")) {
     res.status(401).json({ error: "Missing or invalid authorization header" });
     return;
@@ -25,19 +26,21 @@ export async function requireAuth(
     const token = header.split("Bearer ")[1];
     const decoded = await auth.verifyIdToken(token);
     req.uid = decoded.uid;
-
     // Check admin status from users collection
     const userDoc = await db.collection("users").doc(decoded.uid).get();
     if (userDoc.exists) {
       req.admin = userDoc.data()?.admin === true;
     } else {
       // Auto-create user doc on first API call
-      await db.collection("users").doc(decoded.uid).set({
-        email: decoded.email || "",
-        displayName: decoded.name || "",
-        admin: false,
-        createdAt: new Date(),
-      });
+      await db
+        .collection("users")
+        .doc(decoded.uid)
+        .set({
+          email: decoded.email || "",
+          displayName: decoded.name || "",
+          admin: false,
+          createdAt: new Date(),
+        });
       req.admin = false;
     }
 
@@ -54,7 +57,7 @@ export async function requireAuth(
 export function requireAdmin(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void {
   if (!req.admin) {
     res.status(403).json({ error: "Admin access required" });

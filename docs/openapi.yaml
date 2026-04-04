@@ -1,0 +1,807 @@
+openapi: 3.0.3
+
+info:
+  title: Golf Pool App API
+  version: 1.0.0
+  description: |
+    API for managing golf pools, teams, tournaments, and leaderboards.
+
+    All endpoints (except `/health`) require a Firebase Auth ID token passed as a Bearer token.
+    Admin-only endpoints additionally require the authenticated user to have `admin: true` in Firestore.
+
+    Make sure to use the correct server URL depending on your environment:
+    - Local development: `http://127.0.0.1:5001/golf-pool-app-492300/us-central1/api`
+    - Production: `https://us-central1-golf-pool-app-492300.cloudfunctions.net/api`
+
+servers:
+  - url: http://127.0.0.1:5001/golf-pool-app-492300/us-central1/api
+    description: Local emulator
+  - url: https://us-central1-golf-pool-app-492300.cloudfunctions.net/api
+    description: Production (Firebase Cloud Function)s
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase Auth ID token
+
+  schemas:
+    TierConfig:
+      type: object
+      required: [tierNumber, oddsMin, oddsMax, picksRequired]
+      properties:
+        tierNumber:
+          type: integer
+          example: 1
+        oddsMin:
+          type: string
+          example: "+100"
+        oddsMax:
+          type: string
+          example: "+500"
+        picksRequired:
+          type: integer
+          example: 2
+
+    ScoringRule:
+      type: object
+      required: [countBest, outOf]
+      properties:
+        countBest:
+          type: integer
+          description: Count the best N scores
+          example: 4
+        outOf:
+          type: integer
+          description: Out of the total picks per team
+          example: 6
+
+    PlayerInput:
+      type: object
+      required: [name, odds]
+      properties:
+        name:
+          type: string
+          example: "Scottie Scheffler"
+        odds:
+          type: string
+          example: "+450"
+
+    PlayerDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        odds:
+          type: string
+        espnMapped:
+          type: boolean
+
+    PlayerScore:
+      type: object
+      properties:
+        playerId:
+          type: string
+        playerName:
+          type: string
+        score:
+          type: integer
+          nullable: true
+          description: Score relative to par (null if not started)
+        missedCut:
+          type: boolean
+        counting:
+          type: boolean
+          description: Whether this score counts toward the team total
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        userId:
+          type: string
+        totalScore:
+          type: integer
+          description: Combined score (lower is better)
+        playerScores:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerScore"
+
+    UpcomingTeam:
+      type: object
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        userId:
+          type: string
+        players:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              odds:
+                type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      example:
+        error: "Resource not found"
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+  responses:
+    BadRequest:
+      description: Invalid request body or parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid auth token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Authenticated but not authorized (e.g. not admin, not team owner)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadGateway:
+      description: Upstream ESPN API error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SuccessResponse:
+      description: Operation succeeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Success"
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+    description: API health check
+  - name: Tournaments
+    description: Tournament and player management (admin endpoints require admin role)
+  - name: Pools
+    description: Pool creation, joining, and leaderboards
+  - name: Teams
+    description: Team creation and management
+
+paths:
+  # ─────────────────────────────────────────────
+  # Health
+  # ─────────────────────────────────────────────
+
+  /health:
+    get:
+      summary: Health check
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: API is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  # ─────────────────────────────────────────────
+  # Tournaments
+  # ─────────────────────────────────────────────
+
+  /tournaments:
+    post:
+      summary: Create a tournament
+      description: "**Admin only.** Creates a new tournament."
+      tags: [Tournaments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, startDate, endDate]
+              properties:
+                name:
+                  type: string
+                  example: "The Masters 2026"
+                espnEventId:
+                  type: string
+                  nullable: true
+                  description: ESPN event ID for score syncing (optional)
+                  example: "401353232"
+                startDate:
+                  type: string
+                  format: date-time
+                  example: "2026-04-10T13:00:00Z"
+                endDate:
+                  type: string
+                  format: date-time
+                  example: "2026-04-13T20:00:00Z"
+      responses:
+        "201":
+          description: Tournament created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "abc123"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /tournaments/{tournamentId}/players:
+    post:
+      summary: Bulk add players to a tournament
+      description: "**Admin only.** Adds one or more players with odds to a tournament."
+      tags: [Tournaments]
+      parameters:
+        - in: path
+          name: tournamentId
+          required: true
+          schema:
+            type: string
+          example: "abc123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [players]
+              properties:
+                players:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/PlayerInput"
+            example:
+              players:
+                - name: "Scottie Scheffler"
+                  odds: "+450"
+                - name: "Rory McIlroy"
+                  odds: "+600"
+      responses:
+        "201":
+          description: Players added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  playerIds:
+                    type: array
+                    items:
+                      type: string
+                  count:
+                    type: integer
+              example:
+                playerIds: ["p1", "p2"]
+                count: 2
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /tournaments/{tournamentId}/sync-espn:
+    post:
+      summary: Auto-sync unmapped players to ESPN IDs
+      description: |
+        **Admin only.** Fetches the ESPN scoreboard and fuzzy-matches our player names to ESPN competitor IDs.
+        Only processes players where `espnMapped` is `false`.
+      tags: [Tournaments]
+      parameters:
+        - in: path
+          name: tournamentId
+          required: true
+          schema:
+            type: string
+          example: "abc123"
+      responses:
+        "200":
+          description: Sync result summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matched:
+                    type: integer
+                  unmatched:
+                    type: integer
+                  matchedPlayers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        playerId:
+                          type: string
+                        espnId:
+                          type: string
+                        name:
+                          type: string
+                  unmatchedPlayers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+              example:
+                matched: 48
+                unmatched: 2
+                matchedPlayers: []
+                unmatchedPlayers: []
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /tournaments/players/{playerId}/espn-link:
+    put:
+      summary: Manually link a player to an ESPN ID
+      description: "**Admin only.** Used to fix players that failed auto-sync."
+      tags: [Tournaments]
+      parameters:
+        - in: path
+          name: playerId
+          required: true
+          schema:
+            type: string
+          example: "player_xyz"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [espnId]
+              properties:
+                espnId:
+                  type: string
+                  example: "3448"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─────────────────────────────────────────────
+  # Pools
+  # ─────────────────────────────────────────────
+
+  /pools:
+    post:
+      summary: Create a pool
+      description: Creates a new pool linked to a tournament. The authenticated user becomes the pool creator.
+      tags: [Pools]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, password, tournamentId, tiers, scoringRule]
+              properties:
+                name:
+                  type: string
+                  example: "Friends League 2026"
+                password:
+                  type: string
+                  example: "birdie42"
+                tournamentId:
+                  type: string
+                  example: "abc123"
+                tiers:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TierConfig"
+                scoringRule:
+                  $ref: "#/components/schemas/ScoringRule"
+            example:
+              name: "Friends League 2026"
+              password: "birdie42"
+              tournamentId: "abc123"
+              tiers:
+                - tierNumber: 1
+                  oddsMin: "+100"
+                  oddsMax: "+500"
+                  picksRequired: 2
+                - tierNumber: 2
+                  oddsMin: "+501"
+                  oddsMax: "+2000"
+                  picksRequired: 2
+                - tierNumber: 3
+                  oddsMin: "+2001"
+                  oddsMax: "+9999"
+                  picksRequired: 2
+              scoringRule:
+                countBest: 4
+                outOf: 6
+      responses:
+        "201":
+          description: Pool created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+              example:
+                id: "pool_abc"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /pools/{poolId}/join:
+    post:
+      summary: Join a pool
+      description: |
+        Validates the pool password. On success, the user should then call
+        `POST /teams/pools/{poolId}/teams` to create their team.
+      tags: [Pools]
+      parameters:
+        - in: path
+          name: poolId
+          required: true
+          schema:
+            type: string
+          example: "pool_abc"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  example: "birdie42"
+      responses:
+        "200":
+          description: Password accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  poolId:
+                    type: string
+                  message:
+                    type: string
+              example:
+                success: true
+                poolId: "pool_abc"
+                message: "Password accepted. Create a team to join."
+        "401":
+          description: Incorrect pool password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /pools/{poolId}/leave:
+    post:
+      summary: Leave a pool
+      description: Deletes the authenticated user's team from the pool.
+      tags: [Pools]
+      parameters:
+        - in: path
+          name: poolId
+          required: true
+          schema:
+            type: string
+          example: "pool_abc"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: User does not have a team in this pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /pools/{poolId}/leaderboard:
+    get:
+      summary: Get the pool leaderboard
+      description: |
+        Returns all teams in the pool with scores.
+
+        - If the tournament status is `upcoming`, returns teams with player info but no scores.
+        - If the tournament is `active` or `completed`, returns live/final scores from ESPN, sorted ascending (lower = better).
+      tags: [Pools]
+      parameters:
+        - in: path
+          name: poolId
+          required: true
+          schema:
+            type: string
+          example: "pool_abc"
+      responses:
+        "200":
+          description: Leaderboard data
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - title: Upcoming Tournament
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [upcoming]
+                      teams:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/UpcomingTeam"
+                  - title: Active or Completed Tournament
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [active, completed]
+                      leaderboard:
+                        type: array
+                        description: Sorted ascending by totalScore (lowest wins)
+                        items:
+                          $ref: "#/components/schemas/LeaderboardEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  # ─────────────────────────────────────────────
+  # Teams
+  # ─────────────────────────────────────────────
+
+  /teams/pools/{poolId}/teams:
+    post:
+      summary: Create a team in a pool
+      description: |
+        Creates the authenticated user's team with their golfer picks.
+        Validates:
+        - Tournament has not started (`status: upcoming`)
+        - User does not already have a team in the pool
+        - All player IDs exist and belong to the pool's tournament
+        - Picks satisfy the pool's tier configuration
+      tags: [Teams]
+      parameters:
+        - in: path
+          name: poolId
+          required: true
+          schema:
+            type: string
+          example: "pool_abc"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, picks]
+              properties:
+                name:
+                  type: string
+                  example: "Team Eagle"
+                picks:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of player document IDs
+                  example:
+                    [
+                      "player_1",
+                      "player_2",
+                      "player_3",
+                      "player_4",
+                      "player_5",
+                      "player_6",
+                    ]
+      responses:
+        "201":
+          description: Team created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+              example:
+                id: "team_xyz"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /teams/{teamId}:
+    get:
+      summary: Get team details
+      description: Returns the team along with full player details for each pick.
+      tags: [Teams]
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          example: "team_xyz"
+      responses:
+        "200":
+          description: Team with player details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  userId:
+                    type: string
+                  poolId:
+                    type: string
+                  players:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlayerDetail"
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      summary: Update a team
+      description: |
+        Updates the team's name and/or picks. The authenticated user must own the team.
+        Validates tournament has not started and new picks satisfy tier rules.
+      tags: [Teams]
+      parameters:
+        - in: path
+          name: teamId
+          required: true
+          schema:
+            type: string
+          example: "team_xyz"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Team Birdie"
+                picks:
+                  type: array
+                  items:
+                    type: string
+                  description: Updated array of player document IDs (replaces existing picks)
+                  example:
+                    [
+                      "player_1",
+                      "player_3",
+                      "player_5",
+                      "player_7",
+                      "player_9",
+                      "player_11",
+                    ]
+            example:
+              name: "Team Birdie"
+              picks:
+                [
+                  "player_1",
+                  "player_3",
+                  "player_5",
+                  "player_7",
+                  "player_9",
+                  "player_11",
+                ]
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"

@@ -4,15 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Backend for a golf pool app: groups pick PGA tournament golfers across odds-based tiers, and scores are pulled from ESPN's public scoreboard API. Firebase project is `golf-pool-app-492300`. The canonical design doc lives at `plan/PLAN_V3.md` and `docs/PLAN_V2.md` — read `PLAN_V3.md` before making architectural changes.
+Golf pool app: groups pick PGA tournament golfers across odds-based tiers, and scores are pulled from ESPN's public scoreboard API. Firebase project is `golf-pool-app-492300`. The canonical design doc lives at `plan/PLAN_V3.md` and `docs/PLAN_V2.md` — read `PLAN_V3.md` before making architectural changes.
 
 ## Stack
 
+**Backend** (`functions/`):
 - Firebase Cloud Functions (Node 18, TypeScript) behind a single Express app exported as `api`
 - Firestore (NoSQL) — collections: `users`, `tournaments`, `players`, `pools`, `teams`
-- Firebase Auth — all auth flows happen client-side; the backend only verifies ID tokens
+- Firebase Auth — ID tokens verified via `requireAuth`/`requireAdmin` middleware; admin flag lives in `users/{uid}.admin`
 
-All functions source lives under `functions/` (that's `firebase.json`'s `source` dir). Run commands from that directory.
+**Frontend** (`web/`):
+- Next.js 15 App Router + React 19 + TypeScript
+- Mantine v7 (`@mantine/core`, `@mantine/form`, `@mantine/hooks`, `@mantine/notifications`)
+- Firebase Auth client SDK scoped to **auth only** — sign-in, sign-up, sign-out, `getIdToken()`. Firestore/Storage client SDKs are NOT used; all data access flows through the Express API via `web/lib/api/client.ts`. This is an intentional architectural constraint — do not add direct Firestore reads from the frontend.
+- Deployed via **Firebase App Hosting** (not Vercel). Config at `web/apphosting.yaml`. The `NEXT_PUBLIC_FIREBASE_API_KEY` and `NEXT_PUBLIC_FIREBASE_APP_ID` env vars are sourced from Secret Manager.
+
+Backend source lives under `functions/` (that's `firebase.json`'s `source` dir). Frontend source lives under `web/`. Run backend commands from `functions/` and frontend commands from `web/`.
 
 ## Common Commands
 
@@ -29,10 +36,19 @@ firebase emulators:start
 
 # Deploy functions to the configured Firebase project
 cd functions && npm run deploy
+
+# Frontend: install, run dev server, typecheck, production build
+cd web && npm install
+cd web && npm run dev          # Next dev server on :3000, talks to the functions emulator
+cd web && npm run typecheck
+cd web && npm run build
+
+# Deploy frontend to Firebase App Hosting (one-time setup: firebase apphosting:backends:create)
+firebase deploy --only apphosting
 ```
 
 Emulator ports: functions `5001`, firestore `8080`, auth `9099`, UI `4000`. Local API base URL:
-`http://127.0.0.1:5001/golf-pool-app-492300/us-central1/api`
+`http://127.0.0.1:5001/golf-pool-app-492300/us-central1/api`. Frontend dev server: `http://localhost:3000`. Copy `web/.env.example` to `web/.env.local` before first run.
 
 There is **no test runner configured yet** — `plan/PLAN_V3.md` calls out the unit tests that should exist (ESPN name matching, leaderboard scoring, tier validation) but none have been wired up. Don't invent a `npm test` command; add the harness if tests are needed.
 

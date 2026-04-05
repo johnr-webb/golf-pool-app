@@ -115,6 +115,63 @@ components:
           items:
             $ref: "#/components/schemas/PlayerScore"
 
+    TournamentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        espnEventId:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [upcoming, active, completed]
+
+    PoolSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tournamentId:
+          type: string
+        tournamentName:
+          type: string
+          nullable: true
+        tournamentStatus:
+          type: string
+          enum: [upcoming, active, completed]
+          nullable: true
+        createdBy:
+          type: string
+        myTeamId:
+          type: string
+          nullable: true
+          description: The caller's team ID in this pool, or null if they have no team yet
+
+    PoolDetail:
+      allOf:
+        - $ref: "#/components/schemas/PoolSummary"
+        - type: object
+          properties:
+            tiers:
+              type: array
+              items:
+                $ref: "#/components/schemas/TierConfig"
+            scoringRule:
+              $ref: "#/components/schemas/ScoringRule"
+
     UpcomingTeam:
       type: object
       properties:
@@ -235,6 +292,31 @@ paths:
   # ─────────────────────────────────────────────
 
   /tournaments:
+    get:
+      summary: List tournaments
+      description: Returns tournaments visible to the caller, sorted by start date ascending. Any signed-in user.
+      tags: [Tournaments]
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [upcoming, active, completed]
+          description: Optional status filter
+      responses:
+        "200":
+          description: Tournament list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TournamentSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       summary: Create a tournament
       description: "**Admin only.** Creates a new tournament."
@@ -282,6 +364,29 @@ paths:
           $ref: "#/components/responses/Forbidden"
 
   /tournaments/{tournamentId}/players:
+    get:
+      summary: List players for a tournament
+      description: Returns the player roster (name, odds, espnMapped) sorted by name. Any signed-in user; required by the team picker.
+      tags: [Tournaments]
+      parameters:
+        - in: path
+          name: tournamentId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Player roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayerDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     post:
       summary: Bulk add players to a tournament
       description: "**Admin only.** Adds one or more players with odds to a tournament."
@@ -507,6 +612,50 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /pools/mine:
+    get:
+      summary: List pools the caller belongs to
+      description: |
+        Returns pools where the caller either has a team or is the creator.
+        Each entry includes `myTeamId` (null if the caller hasn't created a team yet in that pool).
+      tags: [Pools]
+      responses:
+        "200":
+          description: Pool list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PoolSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /pools/{poolId}:
+    get:
+      summary: Get pool detail
+      description: |
+        Returns pool configuration (tiers, scoring rule, tournament summary, myTeamId).
+        Does NOT return the pool password. Required by the team picker and pool detail screens.
+      tags: [Pools]
+      parameters:
+        - in: path
+          name: poolId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pool detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /pools/{poolId}/join:
     post:

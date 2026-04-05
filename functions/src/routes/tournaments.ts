@@ -6,6 +6,80 @@ import { FieldValue } from "firebase-admin/firestore";
 
 const router = Router();
 
+// GET /tournaments — List tournaments (any signed-in user).
+// Optional ?status=upcoming|active|completed filter. Sorted by startDate asc.
+router.get("/", requireAuth, async (req: AuthRequest, res) => {
+  const statusFilter = req.query.status as string | undefined;
+  const validStatuses = ["upcoming", "active", "completed"];
+
+  let query: FirebaseFirestore.Query = db.collection("tournaments");
+  if (statusFilter) {
+    if (!validStatuses.includes(statusFilter)) {
+      res.status(400).json({
+        error: `status must be one of ${validStatuses.join(", ")}`,
+      });
+      return;
+    }
+    query = query.where("status", "==", statusFilter);
+  }
+
+  const snap = await query.get();
+  const tournaments = snap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        name: data.name,
+        espnEventId: data.espnEventId,
+        startDate: data.startDate?.toDate?.()?.toISOString() ?? null,
+        endDate: data.endDate?.toDate?.()?.toISOString() ?? null,
+        status: data.status,
+      };
+    })
+    // Sort in-memory to avoid requiring a composite index when filtering by status
+    .sort((a, b) => (a.startDate ?? "").localeCompare(b.startDate ?? ""));
+
+  res.json(tournaments);
+});
+
+// GET /tournaments/:tournamentId/players — Player roster for a tournament (any signed-in user).
+// Required by the team picker.
+router.get(
+  "/:tournamentId/players",
+  requireAuth,
+  async (req: AuthRequest, res) => {
+    const { tournamentId } = req.params;
+
+    const tournDoc = await db
+      .collection("tournaments")
+      .doc(tournamentId)
+      .get();
+    if (!tournDoc.exists) {
+      res.status(404).json({ error: "Tournament not found" });
+      return;
+    }
+
+    const playersSnap = await db
+      .collection("players")
+      .where("tournamentId", "==", tournamentId)
+      .get();
+
+    const players = playersSnap.docs
+      .map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          name: data.name as string,
+          odds: data.odds as string,
+          espnMapped: !!data.espnMapped,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.json(players);
+  },
+);
+
 // POST /tournaments — Create tournament (admin only)
 router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
   const { name, espnEventId, startDate, endDate } = req.body;

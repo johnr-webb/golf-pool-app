@@ -103,6 +103,116 @@ router.post("/:poolId/leave", requireAuth, async (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
+// GET /pools/mine — List pools the caller is a member of (has a team) or created.
+// Registered before /:poolId routes so Express doesn't treat "mine" as a poolId.
+router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
+  // Pools where I have a team → capture myTeamId per pool
+  const teamsSnap = await db
+    .collection("teams")
+    .where("userId", "==", req.uid)
+    .get();
+  const teamIdByPool = new Map<string, string>();
+  teamsSnap.docs.forEach((d) => {
+    teamIdByPool.set(d.data().poolId as string, d.id);
+  });
+
+  // Pools I created (even if I haven't made a team yet)
+  const createdSnap = await db
+    .collection("pools")
+    .where("createdBy", "==", req.uid)
+    .get();
+
+  const poolIds = new Set<string>([
+    ...teamIdByPool.keys(),
+    ...createdSnap.docs.map((d) => d.id),
+  ]);
+
+  if (poolIds.size === 0) {
+    res.json([]);
+    return;
+  }
+
+  // Fetch pool docs + tournament docs (dedupe tournament lookups)
+  const poolDocs = await Promise.all(
+    [...poolIds].map((id) => db.collection("pools").doc(id).get()),
+  );
+  const tournamentIds = new Set<string>();
+  poolDocs.forEach((p) => {
+    if (p.exists) tournamentIds.add(p.data()!.tournamentId as string);
+  });
+  const tournamentDocs = await Promise.all(
+    [...tournamentIds].map((id) => db.collection("tournaments").doc(id).get()),
+  );
+  const tournamentById = new Map<
+    string,
+    { name: string; status: "upcoming" | "active" | "completed" }
+  >();
+  tournamentDocs.forEach((t) => {
+    if (t.exists) {
+      const data = t.data()!;
+      tournamentById.set(t.id, { name: data.name, status: data.status });
+    }
+  });
+
+  const result = poolDocs
+    .filter((p) => p.exists)
+    .map((p) => {
+      const data = p.data()!;
+      const tourn = tournamentById.get(data.tournamentId);
+      return {
+        id: p.id,
+        name: data.name,
+        tournamentId: data.tournamentId,
+        tournamentName: tourn?.name ?? null,
+        tournamentStatus: tourn?.status ?? null,
+        createdBy: data.createdBy,
+        myTeamId: teamIdByPool.get(p.id) ?? null,
+      };
+    });
+
+  res.json(result);
+});
+
+// GET /pools/:poolId — Pool detail (tiers, scoring rule, tournament summary).
+// Does NOT return the password. Used by the team picker and pool detail screens.
+router.get("/:poolId", requireAuth, async (req: AuthRequest, res) => {
+  const { poolId } = req.params;
+
+  const poolDoc = await db.collection("pools").doc(poolId).get();
+  if (!poolDoc.exists) {
+    res.status(404).json({ error: "Pool not found" });
+    return;
+  }
+  const pool = poolDoc.data()!;
+
+  const tournDoc = await db
+    .collection("tournaments")
+    .doc(pool.tournamentId)
+    .get();
+  const tournament = tournDoc.exists ? tournDoc.data()! : null;
+
+  // myTeamId for the caller (if any)
+  const teamSnap = await db
+    .collection("teams")
+    .where("poolId", "==", poolId)
+    .where("userId", "==", req.uid)
+    .limit(1)
+    .get();
+  const myTeamId = teamSnap.empty ? null : teamSnap.docs[0].id;
+
+  res.json({
+    id: poolDoc.id,
+    name: pool.name,
+    tournamentId: pool.tournamentId,
+    tournamentName: tournament?.name ?? null,
+    tournamentStatus: tournament?.status ?? null,
+    createdBy: pool.createdBy,
+    tiers: pool.tiers,
+    scoringRule: pool.scoringRule,
+    myTeamId,
+  });
+});
+
 // GET /pools/:poolId/leaderboard — Get leaderboard
 router.get("/:poolId/leaderboard", requireAuth, async (req: AuthRequest, res) => {
   const { poolId } = req.params;

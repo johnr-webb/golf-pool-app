@@ -8,6 +8,19 @@
 
 export type TournamentStatus = "upcoming" | "active" | "completed";
 
+export interface Me {
+  uid: string;
+  email: string;
+  displayName: string;
+  realName: string;
+  admin: boolean;
+}
+
+export interface UpdateMeInput {
+  displayName?: string;
+  realName?: string;
+}
+
 export interface TierConfig {
   tierNumber: number;
   oddsMin: string;

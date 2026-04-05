@@ -2,15 +2,19 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Center, Loader } from "@mantine/core";
 import { useAuth } from "@/lib/auth/AuthProvider";
 
 /**
- * Client-side auth gate. Loading → spinner. Unauthed → redirect to /login.
- * Authed → render children.
+ * Client-side defense-in-depth auth gate. The primary auth check happens in
+ * `web/middleware.ts` — if you got here without a __session cookie, you were
+ * already redirected. This component exists to handle the narrow window where
+ * the cookie expired / was revoked mid-session, or edge cases where SSR data
+ * was rendered but the Firebase client SDK decided the user is gone.
  *
- * Next middleware is not used for auth because Firebase ID tokens live in
- * IndexedDB, not cookies. A session cookie bridge is deferred to phase 2.
+ * Critically: we render children immediately. No centered loader. The
+ * middleware has already guaranteed the cookie exists; the only state we
+ * flip into is "Firebase client says logged out, bounce to /login" — and
+ * that should be vanishingly rare.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -21,14 +25,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
       router.replace("/login");
     }
   }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <Center h="100vh">
-        <Loader />
-      </Center>
-    );
-  }
 
   return <>{children}</>;
 }

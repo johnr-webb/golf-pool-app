@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../config/firebase";
-import { AuthRequest, requireAuth } from "../middleware/auth";
+import { AuthRequest, requireAuth, requireAdmin } from "../middleware/auth";
 import { FieldValue } from "firebase-admin/firestore";
 import {
   fetchScoreboard,
@@ -15,8 +15,9 @@ import { LeaderboardEntry } from "../types";
 
 const router = Router();
 
-// POST /pools — Create pool (auth required)
-router.post("/", requireAuth, async (req: AuthRequest, res) => {
+// POST /pools — Create pool. Admin-only for now (phase 1). See John's open
+// architectural question about per-pool ownership in plan/PLAN_V3.md.
+router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
   const { name, password, tournamentId, tiers, scoringRule } = req.body;
 
   if (!name || !password || !tournamentId || !tiers || !scoringRule) {

@@ -6,6 +6,7 @@ import {
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { QueryProvider } from "@/lib/query/QueryProvider";
 
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
@@ -29,7 +30,9 @@ export default function RootLayout({
       <body>
         <MantineProvider defaultColorScheme="auto">
           <Notifications position="top-right" />
-          <AuthProvider>{children}</AuthProvider>
+          <QueryProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </QueryProvider>
         </MantineProvider>
       </body>
     </html>

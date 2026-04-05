@@ -12,4 +12,11 @@ export const firebaseConfig = {
 
 export const useEmulators = process.env.NEXT_PUBLIC_USE_EMULATORS === "true";
 
-export const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
+// Same-origin base path. `/api/*` is proxied to the Express function by Next
+// rewrites (see web/next.config.ts) so that the __session HttpOnly cookie is
+// first-party and flows both directions without cross-site cookie rules.
+// Overridable only for unusual local setups; the default is what you want.
+export const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL && process.env.NEXT_PUBLIC_API_BASE_URL.length > 0
+    ? process.env.NEXT_PUBLIC_API_BASE_URL
+    : "/api";

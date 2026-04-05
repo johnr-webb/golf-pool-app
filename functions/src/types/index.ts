@@ -2,7 +2,11 @@ import { Timestamp } from "firebase-admin/firestore";
 
 export interface User {
   email: string;
+  // Public nickname shown throughout the app.
   displayName: string;
+  // Legal/real name — captured at signup for record-keeping, not shown publicly
+  // unless the owner surfaces it. Required going forward; legacy docs may have "".
+  realName: string;
   admin: boolean;
   createdAt: Timestamp;
 }

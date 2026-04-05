@@ -193,6 +193,34 @@ components:
               odds:
                 type: string
 
+    Me:
+      type: object
+      required: [uid, email, displayName, realName, admin]
+      properties:
+        uid:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+          description: Public nickname shown on leaderboards
+        realName:
+          type: string
+          description: Legal name — captured at signup for pool admin records
+        admin:
+          type: boolean
+
+    UpdateMeInput:
+      type: object
+      description: Provide at least one field. Admin flag is not mutable via this route.
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+        realName:
+          type: string
+          minLength: 1
+
     Error:
       type: object
       properties:
@@ -264,6 +292,10 @@ tags:
     description: Pool creation, joining, and leaderboards
   - name: Teams
     description: Team creation and management
+  - name: Users
+    description: Current user profile (display name, real name, admin flag)
+  - name: Session
+    description: Session cookie bridge for server-side rendering
 
 paths:
   # ─────────────────────────────────────────────
@@ -954,3 +986,106 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  # ─────────────────────────────────────────────
+  # Users
+  # ─────────────────────────────────────────────
+  /users/mine:
+    get:
+      tags: [Users]
+      summary: Get the current user's profile
+      description: |
+        Returns the caller's Firestore user doc (uid, email, displayName,
+        realName, admin). Auto-creates the doc on first call if missing.
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Users]
+      summary: Update current user's display name and/or real name
+      description: |
+        Partial update. Admin flag is NOT mutable via this endpoint. Used by
+        the signup flow to seed realName immediately after Firebase Auth
+        account creation, and by the profile editor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeInput"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────────────────────
+  # Session
+  # ─────────────────────────────────────────────
+  /session:
+    post:
+      tags: [Session]
+      summary: Exchange a Firebase ID token for a __session cookie
+      description: |
+        Called immediately after client-side sign-in / sign-up. The response
+        sets an HttpOnly, Secure, SameSite=Lax cookie named exactly
+        `__session` (Firebase App Hosting's CDN only forwards that name).
+        The cookie is what lets Next.js server components and middleware
+        authenticate the caller. Max lifetime: 5 days. The caller must have
+        signed in within the last 5 minutes.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken:
+                  type: string
+                  description: Fresh Firebase ID token from `user.getIdToken()`
+      responses:
+        "200":
+          description: Session cookie set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: "__session=...; Path=/; HttpOnly; Secure; SameSite=Lax"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      tags: [Session]
+      summary: Clear the session cookie and revoke refresh tokens
+      description: |
+        Called during sign-out, BEFORE firebase.signOut() fires on the
+        client. Verifies the current __session cookie (if any) and revokes
+        the user's refresh tokens, then sends a Set-Cookie header that
+        deletes __session on the browser.
+      security: []
+      responses:
+        "200":
+          description: Session cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"

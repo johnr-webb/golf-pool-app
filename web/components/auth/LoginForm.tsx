@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Anchor,
@@ -19,6 +19,8 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 export function LoginForm() {
   const { signIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +37,13 @@ export function LoginForm() {
     setError(null);
     try {
       await signIn(values.email, values.password);
-      router.replace("/pools");
+      // Honor the ?next= hint planted by the middleware, but only if it's a
+      // safe relative path (defense against open-redirect).
+      const safeNext =
+        nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+          ? nextPath
+          : "/pools";
+      router.replace(safeNext);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign in failed");
     } finally {

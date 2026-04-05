@@ -65,14 +65,20 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const url = `${apiBaseUrl}${path}`;
 
+  // credentials: "include" so the __session cookie rides along on every call.
+  // Bearer token is still attached in buildHeaders() as a fallback for any
+  // request that fires before POST /session has set the cookie — requireAuth
+  // on the backend accepts either credential.
+  const fetchOpts: RequestInit = { cache: "no-store", credentials: "include" };
+
   // First attempt with cached token
   let headers = await buildHeaders(init, false);
-  let res = await fetch(url, { ...init, headers, cache: "no-store" });
+  let res = await fetch(url, { ...init, ...fetchOpts, headers });
 
   // On 401, force-refresh the token and retry exactly once
   if (res.status === 401 && getFirebaseAuth().currentUser) {
     headers = await buildHeaders(init, true);
-    res = await fetch(url, { ...init, headers, cache: "no-store" });
+    res = await fetch(url, { ...init, ...fetchOpts, headers });
   }
 
   const body = await parseBody(res);

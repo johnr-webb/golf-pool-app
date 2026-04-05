@@ -23,10 +23,16 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm({
-    initialValues: { email: "", password: "", displayName: "" },
+    initialValues: {
+      email: "",
+      password: "",
+      realName: "",
+      displayName: "",
+    },
     validate: {
       email: (v) => (/^\S+@\S+\.\S+$/.test(v) ? null : "Invalid email"),
       password: (v) => (v.length >= 6 ? null : "At least 6 characters"),
+      realName: (v) => (v.trim().length > 0 ? null : "Required"),
       displayName: (v) => (v.trim().length > 0 ? null : "Required"),
     },
   });
@@ -35,7 +41,12 @@ export function SignupForm() {
     setSubmitting(true);
     setError(null);
     try {
-      await signUp(values.email, values.password, values.displayName);
+      await signUp(
+        values.email,
+        values.password,
+        values.displayName,
+        values.realName,
+      );
       router.replace("/pools");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign up failed");
@@ -50,8 +61,16 @@ export function SignupForm() {
       <form onSubmit={handleSubmit}>
         <Stack gap="sm">
           <TextInput
-            label="Display name"
-            placeholder="Your name"
+            label="Real name"
+            description="Your legal name — kept private, used so pool admins know who's who"
+            placeholder="Jane Smith"
+            required
+            {...form.getInputProps("realName")}
+          />
+          <TextInput
+            label="Nickname"
+            description="Public display name shown on leaderboards"
+            placeholder="eagle-eye-jane"
             required
             {...form.getInputProps("displayName")}
           />

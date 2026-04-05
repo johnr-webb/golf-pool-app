@@ -89,7 +89,22 @@ curl -s -X POST "http://127.0.0.1:8080/v1/projects/golf-pool-app-492300/database
     \"fields\": {
       \"email\": {\"stringValue\": \"admin@test.com\"},
       \"displayName\": {\"stringValue\": \"Test Admin\"},
+      \"realName\": {\"stringValue\": \"Tess Admin\"},
       \"admin\": {\"booleanValue\": true},
+      \"createdAt\": {\"timestampValue\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
+    }
+  }" > /dev/null 2>&1
+
+# Seed the regular user's Firestore doc too so /users/mine returns a populated
+# realName on first sign-in instead of an empty string. Non-admin.
+curl -s -X POST "http://127.0.0.1:8080/v1/projects/golf-pool-app-492300/databases/(default)/documents/users?documentId=${USER_UID}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"fields\": {
+      \"email\": {\"stringValue\": \"user@test.com\"},
+      \"displayName\": {\"stringValue\": \"Regular Reggie\"},
+      \"realName\": {\"stringValue\": \"Reggie User\"},
+      \"admin\": {\"booleanValue\": false},
       \"createdAt\": {\"timestampValue\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
     }
   }" > /dev/null 2>&1

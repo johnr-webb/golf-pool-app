@@ -74,7 +74,14 @@ if [ "$USER_TOKEN" = "FAILED" ]; then
   USER_UID=$(echo "$USER_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('localId','FAILED'))" 2>/dev/null)
 fi
 
-# Set admin user's admin flag in Firestore emulator
+# Wipe all app collections before re-seeding. This runs AFTER user creation
+# (auth emulator is separate from Firestore), so auth users are preserved.
+echo -e "${YELLOW}Resetting Firestore collections...${NC}"
+curl -s -X POST "${API_URL}/dev/reset" > /dev/null
+
+# Set admin user's admin flag in Firestore emulator. Must run AFTER /dev/reset
+# because the reset wipes the users collection. Without this, admin routes
+# like POST /tournaments will 403 even with the admin token.
 echo -e "${YELLOW}Setting admin flag in Firestore...${NC}"
 curl -s -X POST "http://127.0.0.1:8080/v1/projects/golf-pool-app-492300/databases/(default)/documents/users?documentId=${ADMIN_UID}" \
   -H "Content-Type: application/json" \
@@ -87,32 +94,55 @@ curl -s -X POST "http://127.0.0.1:8080/v1/projects/golf-pool-app-492300/database
     }
   }" > /dev/null 2>&1
 
+# Auto-seed two tournaments (one active with live sample scores, one upcoming),
+# two pools, and pre-made teams for both users in the active pool.
+echo -e "${YELLOW}Seeding tournaments, players, pools, and teams...${NC}"
+SEED_RESPONSE=$(curl -s -X POST "${API_URL}/dev/seed" \
+  -H "Content-Type: application/json" \
+  -d "{\"adminUid\":\"${ADMIN_UID}\",\"userUid\":\"${USER_UID}\"}")
+
+ACTIVE_POOL_ID=$(echo "$SEED_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('pools',{}).get('active',{}).get('id','FAILED'))" 2>/dev/null || echo "FAILED")
+UPCOMING_POOL_ID=$(echo "$SEED_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('pools',{}).get('upcoming',{}).get('id','FAILED'))" 2>/dev/null || echo "FAILED")
+
+if [ "$ACTIVE_POOL_ID" = "FAILED" ]; then
+  echo -e "\033[0;31mERROR: Seed failed.${NC} Response:"
+  echo "$SEED_RESPONSE"
+  exit 1
+fi
+
 echo ""
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo ""
 echo "API Base URL: ${API_URL}"
+echo "Frontend:     http://localhost:3000 (run: cd web && npm run dev)"
 echo ""
 echo "-------------------------------------------"
-echo "ADMIN USER (admin@test.com)"
+echo "ADMIN USER (admin@test.com / password123)"
 echo "  UID:   ${ADMIN_UID}"
-echo "  Token: ${ADMIN_TOKEN}"
 echo "-------------------------------------------"
-echo "REGULAR USER (user@test.com)"
+echo "REGULAR USER (user@test.com / password123)"
 echo "  UID:   ${USER_UID}"
-echo "  Token: ${USER_TOKEN}"
 echo "-------------------------------------------"
 echo ""
-echo -e "${YELLOW}Postman setup:${NC}"
-echo "  1. Set a variable: base_url = ${API_URL}"
-echo "  2. Set a variable: admin_token = <token above>"
-echo "  3. Set a variable: user_token = <token above>"
-echo "  4. Add header: Authorization = Bearer {{admin_token}}"
+echo -e "${GREEN}Seeded data:${NC}"
+echo "  - Tournament 1: Valero Texas Open (Sample) — ACTIVE, real scores from sample_data.json"
+echo "  - Tournament 2: Sunday Demo Open — UPCOMING, lets you test team creation"
+echo "  - Active pool:   ${ACTIVE_POOL_ID}  (both users already have teams)"
+echo "  - Upcoming pool: ${UPCOMING_POOL_ID}  (empty, ready for picks)"
+echo "  - Pool password: letmein"
 echo ""
-echo -e "${YELLOW}Quick test:${NC}"
-echo "  curl ${API_URL}/health"
+echo -e "${GREEN}Try it now:${NC}"
+echo "  1. Open http://localhost:3000"
+echo "  2. Sign in as user@test.com / password123"
+echo "  3. You'll see both pools on the landing page"
+echo "  4. Click 'The Masters Showdown' to see the populated live leaderboard"
+echo "  5. Click 'Demo Pool' to test creating a team"
 echo ""
-echo -e "${YELLOW}Create a tournament (admin):${NC}"
-echo "  curl -X POST ${API_URL}/tournaments \\"
-echo "    -H 'Content-Type: application/json' \\"
-echo "    -H 'Authorization: Bearer <admin_token>' \\"
-echo "    -d '{\"name\":\"Masters 2026\",\"espnEventId\":\"401811941\",\"startDate\":\"2026-04-09\",\"endDate\":\"2026-04-12\"}'"
+echo -e "${YELLOW}Reset and re-seed anytime with:${NC}"
+echo "  ./scripts/local-dev-setup.sh"
+echo ""
+echo -e "${YELLOW}For Postman (admin token):${NC}"
+echo "  ${ADMIN_TOKEN}"
+echo ""
+echo -e "${YELLOW}For Postman (user token):${NC}"
+echo "  ${USER_TOKEN}"

@@ -9,7 +9,7 @@ Golf pool app: groups pick PGA tournament golfers across odds-based tiers, and s
 ## Stack
 
 **Backend** (`functions/`):
-- Firebase Cloud Functions (Node 18, TypeScript) behind a single Express app exported as `api`
+- Firebase Cloud Functions (Node 22, TypeScript) behind a single Express app exported as `api`
 - Firestore (NoSQL) — collections: `users`, `tournaments`, `players`, `pools`, `teams`
 - Firebase Auth — ID tokens verified via `requireAuth`/`requireAdmin` middleware; admin flag lives in `users/{uid}.admin`
 

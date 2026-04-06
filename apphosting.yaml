@@ -3,3 +3,5 @@ env:
     secret: NEXT_PUBLIC_FIREBASE_API_KEY
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
     secret: NEXT_PUBLIC_FIREBASE_APP_ID
+  - variable: INTERNAL_API_URL
+    value: https://us-central1-golf-pool-app-492300.cloudfunctions.net/api

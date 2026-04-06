@@ -4,9 +4,14 @@ import type { NextConfig } from "next";
 // Cloud Functions HTTP URL locally (emulator) and in prod (deployed function).
 // Server-only — not `NEXT_PUBLIC_*` — because the browser should only ever
 // see `/api/...` (same-origin), which is what makes __session cookies work.
-const API_REWRITE_TARGET =
-  process.env.API_REWRITE_TARGET ??
-  "http://127.0.0.1:5001/golf-pool-app-492300/us-central1/api";
+
+export const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL &&
+  process.env.NEXT_PUBLIC_API_BASE_URL.length > 0
+    ? process.env.NEXT_PUBLIC_API_BASE_URL
+    : "/api";
+
+const API_TARGET = process.env.INTERNAL_API_URL;
 
 const config: NextConfig = {
   reactStrictMode: true,
@@ -27,7 +32,7 @@ const config: NextConfig = {
         // Express function. Same-origin is what lets the __session HttpOnly
         // cookie flow back and forth without cross-site gymnastics.
         source: "/api/:path*",
-        destination: `${API_REWRITE_TARGET}/:path*`,
+        destination: `${API_TARGET}/:path*`,
       },
     ];
   },

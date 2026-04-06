@@ -17,23 +17,27 @@ const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
+const baseRouter = express.Router();
+
 // Routes
-app.use("/tournaments", tournamentRoutes);
-app.use("/pools", poolRoutes);
-app.use("/teams", teamRoutes);
-app.use("/users", userRoutes);
-app.use("/session", sessionRoutes);
+baseRouter.use("/tournaments", tournamentRoutes);
+baseRouter.use("/pools", poolRoutes);
+baseRouter.use("/teams", teamRoutes);
+baseRouter.use("/users", userRoutes);
+baseRouter.use("/session", sessionRoutes);
 
 // Dev-only routes: auto-seed and reset for local testing.
 // Guarded twice — mount condition here, and every handler in dev.ts re-checks
 // FUNCTIONS_EMULATOR. Will never mount in production.
 if (process.env.FUNCTIONS_EMULATOR === "true") {
-  app.use("/dev", devRoutes);
+  baseRouter.use("/dev", devRoutes);
 }
 
 // Health check
-app.get("/health", (_req, res) => {
+baseRouter.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+app.use("/api", baseRouter);
 
 export const api = functions.https.onRequest(app);

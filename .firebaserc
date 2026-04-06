@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "golf-pool-app-492300"
-  }
+    "default": "golf-pool-app-492300",
+    "golf-pool": "golf-pool-app-492300"
+  },
+  "targets": {},
+  "etags": {}
 }

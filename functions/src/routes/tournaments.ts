@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../config/firebase";
 import { AuthRequest, requireAuth, requireAdmin } from "../middleware/auth";
 import { fetchScoreboard, matchPlayers } from "../services/espn";
+import { fetchOdds, aggregateOdds } from "../services/odds";
 import { FieldValue } from "firebase-admin/firestore";
 
 const router = Router();
@@ -147,6 +148,100 @@ router.post(
 
     await batch.commit();
     res.status(201).json({ playerIds: ids, count: ids.length });
+  },
+);
+
+// POST /tournaments/:tournamentId/import-odds — Fetch odds from the-odds-api and
+// bulk-create players for this tournament (admin only).
+// Body: { sportKey: string, apiKey?: string }
+// sportKey examples: "golf_masters_tournament_winner", "golf_pga_championship_winner"
+// apiKey is optional — falls back to ODDS_API_KEY env var.
+router.post(
+  "/:tournamentId/import-odds",
+  requireAuth,
+  requireAdmin,
+  async (req: AuthRequest, res) => {
+    const { tournamentId } = req.params;
+    const { sportKey, apiKey } = req.body;
+
+    if (!sportKey) {
+      res.status(400).json({ error: "sportKey is required" });
+      return;
+    }
+
+    const resolvedKey = apiKey || process.env.ODDS_API_KEY;
+    if (!resolvedKey) {
+      res.status(400).json({
+        error:
+          "No API key — pass apiKey in the body or set ODDS_API_KEY env var",
+      });
+      return;
+    }
+
+    // Verify tournament exists
+    const tournDoc = await db.collection("tournaments").doc(tournamentId).get();
+    if (!tournDoc.exists) {
+      res.status(404).json({ error: "Tournament not found" });
+      return;
+    }
+
+    // Check if players already exist for this tournament
+    const existingSnap = await db
+      .collection("players")
+      .where("tournamentId", "==", tournamentId)
+      .limit(1)
+      .get();
+
+    if (!existingSnap.empty) {
+      res.status(409).json({
+        error:
+          "Players already exist for this tournament. Delete them first or use the manual bulk endpoint.",
+      });
+      return;
+    }
+
+    // Fetch and aggregate odds
+    const events = await fetchOdds(sportKey, resolvedKey);
+    if (events.length === 0) {
+      res.status(502).json({ error: "No events returned from odds API" });
+      return;
+    }
+
+    const players = aggregateOdds(events);
+    if (players.length === 0) {
+      res.status(502).json({ error: "No player odds found in response" });
+      return;
+    }
+
+    // Batch-write player docs
+    const batch = db.batch();
+    const ids: string[] = [];
+
+    for (const p of players) {
+      const ref = db.collection("players").doc();
+      ids.push(ref.id);
+      batch.set(ref, {
+        name: p.name,
+        normalizedName: p.normalizedName,
+        odds: p.odds,
+        tournamentId,
+        espnId: null,
+        espnMapped: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+
+    res.status(201).json({
+      playerCount: ids.length,
+      players: players.map((p, i) => ({
+        id: ids[i],
+        name: p.name,
+        odds: p.odds,
+        bookmakerCount: p.bookmakerCount,
+      })),
+    });
   },
 );
 

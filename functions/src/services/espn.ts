@@ -105,7 +105,31 @@ export function normalizeName(name: string): string {
 }
 
 /**
+ * Collapse initials, punctuation, and spacing so "J. J. Spaun" and "JJ Spaun"
+ * both become "jj spaun", and "Christopher" shortened forms match better.
+ */
+function compactName(name: string): string {
+  return normalizeName(name).replace(/\.\s*/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Extract the last token as surname for fallback matching.
+ * "Scottie Scheffler" → "scheffler"
+ */
+function lastName(name: string): string {
+  const parts = normalizeName(name).split(" ");
+  return parts[parts.length - 1];
+}
+
+/**
  * Match our players to ESPN competitors by name.
+ *
+ * Matching cascade:
+ * 1. Exact fullName match
+ * 2. Normalized (accent-stripped, lowercased) fullName / displayName
+ * 3. Compacted names (strips dots/extra spaces — handles "J. J." vs "JJ")
+ * 4. Last-name match (only if it's unique among ESPN competitors)
+ *
  * Returns { matched, unmatched } arrays.
  */
 export function matchPlayers(
@@ -118,26 +142,54 @@ export function matchPlayers(
   const matched: { playerId: string; espnId: string; espnName: string }[] = [];
   const unmatched: { playerId: string; name: string }[] = [];
 
+  // Pre-compute a last-name → competitor index for fallback matching.
+  // Only include last names that are unique among ESPN competitors.
+  const lastNameIndex = new Map<string, EspnCompetitor | null>();
+  for (const c of espnCompetitors) {
+    const ln = lastName(c.athlete.fullName);
+    lastNameIndex.set(ln, lastNameIndex.has(ln) ? null : c);
+  }
+
   for (const player of ourPlayers) {
     const normalizedOurs = normalizeName(player.name);
+    const compactOurs = compactName(player.name);
 
-    // Try exact match on fullName first
+    // 1. Exact match on fullName
     let found = espnCompetitors.find(
       (c) => c.athlete.fullName === player.name
     );
 
-    // Try normalized match
+    // 2. Normalized match on fullName or displayName
     if (!found) {
       found = espnCompetitors.find(
         (c) => normalizeName(c.athlete.fullName) === normalizedOurs
       );
     }
-
-    // Try displayName normalized
     if (!found) {
       found = espnCompetitors.find(
         (c) => normalizeName(c.athlete.displayName) === normalizedOurs
       );
+    }
+
+    // 3. Compacted match (handles "J. J." vs "JJ", dots, extra spaces)
+    if (!found) {
+      found = espnCompetitors.find(
+        (c) => compactName(c.athlete.fullName) === compactOurs
+      );
+    }
+    if (!found) {
+      found = espnCompetitors.find(
+        (c) => compactName(c.athlete.displayName) === compactOurs
+      );
+    }
+
+    // 4. Unique last-name fallback
+    if (!found) {
+      const ln = lastName(player.name);
+      const candidate = lastNameIndex.get(ln);
+      if (candidate) {
+        found = candidate;
+      }
     }
 
     if (found) {

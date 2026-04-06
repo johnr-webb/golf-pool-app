@@ -23,6 +23,8 @@ export interface Tournament {
 
 export interface Player {
   name: string;
+  /** Accent-stripped, lowercased name for cross-source matching */
+  normalizedName?: string;
   odds: string;
   tournamentId: string;
   espnId: string | null;

@@ -3,9 +3,7 @@
     "codebase": "default",
     "source": "functions",
     "runtime": "nodejs22",
-    "predeploy": [
-      "npm --prefix \"$RESOURCE_DIR\" run build"
-    ]
+    "predeploy": []
   },
   "hosting": {
     "source": "web",

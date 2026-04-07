@@ -32,7 +32,7 @@ const config: NextConfig = {
         // Express function. Same-origin is what lets the __session HttpOnly
         // cookie flow back and forth without cross-site gymnastics.
         source: "/api/:path*",
-        destination: `/${API_TARGET}/:path*`,
+        destination: `${API_TARGET}/:path*`,
       },
     ];
   },

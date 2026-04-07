@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { buildAuthPageHref } from "@/lib/auth/redirect";
 
 /**
  * Client-side defense-in-depth auth gate. The primary auth check happens in
@@ -18,13 +19,16 @@ import { useAuth } from "@/lib/auth/AuthProvider";
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/login");
+      const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+      router.replace(buildAuthPageHref("/login", currentPath));
     }
-  }, [user, loading, router]);
+  }, [user, loading, pathname, router, searchParams]);
 
   return <>{children}</>;
 }

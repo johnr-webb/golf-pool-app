@@ -64,10 +64,14 @@ export interface PoolDetail extends PoolSummary {
   scoringRule: ScoringRule;
 }
 
-export interface TeamDetail {
+export interface TeamOwner {
+  userId: string;
+  ownerName: string;
+}
+
+export interface TeamDetail extends TeamOwner {
   id: string;
   name: string;
-  userId: string;
   poolId: string;
   players: PlayerDetail[];
   createdAt: string;
@@ -90,11 +94,11 @@ export interface LeaderboardEntry {
   playerScores: PlayerScore[];
 }
 
-export interface UpcomingTeam {
+export interface UpcomingTeam extends TeamOwner {
   teamId: string;
   teamName: string;
-  userId: string;
-  players: { id: string; name: string; odds: string }[];
+  isMine: boolean;
+  players: PlayerDetail[];
 }
 
 export type LeaderboardResponse =

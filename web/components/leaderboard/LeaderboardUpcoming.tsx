@@ -1,6 +1,15 @@
 "use client";
 
-import { Accordion, Card, Group, Stack, Text, Title } from "@mantine/core";
+import {
+  Accordion,
+  Card,
+  Group,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import { IconLock } from "@tabler/icons-react";
 import type { UpcomingTeam } from "@/lib/types/api";
 
 export function LeaderboardUpcoming({ teams }: { teams: UpcomingTeam[] }) {
@@ -17,32 +26,50 @@ export function LeaderboardUpcoming({ teams }: { teams: UpcomingTeam[] }) {
   return (
     <Stack gap="md">
       <Group gap="xs">
-        <Title order={3}>My Team</Title>
+        <Title order={3}>Teams</Title>
       </Group>
       <Accordion variant="separated" radius="md">
         {teams.map((team) => (
           <Accordion.Item key={team.teamId} value={team.teamId}>
-            <Accordion.Control>
+            <Accordion.Control
+              icon={
+                team.isMine ? undefined : (
+                  <ThemeIcon variant="light" color="gray" size="sm" radius="xl">
+                    <IconLock size={14} />
+                  </ThemeIcon>
+                )
+              }
+              disabled={!team.isMine}
+            >
               <Group justify="space-between" wrap="nowrap">
-                <Text fw={500} lineClamp={1}>
-                  {team.teamName}
-                </Text>
-                <Text fw={700} c="dimmed">
-                  --
-                </Text>
+                <Stack gap={2}>
+                  <Text fw={500} lineClamp={1}>
+                    {team.teamName}
+                  </Text>
+                  <Text size="sm" c="dimmed" lineClamp={1}>
+                    Owner: {team.ownerName}
+                  </Text>
+                </Stack>
+                <Text fw={700}>E</Text>
               </Group>
             </Accordion.Control>
             <Accordion.Panel>
-              <Stack gap="xs">
-                {team.players.map((p) => (
-                  <Group key={p.id} justify="space-between" wrap="nowrap">
-                    <Text fw={500}>{p.name}</Text>
-                    <Text size="sm" c="dimmed">
-                      {p.odds}
-                    </Text>
-                  </Group>
-                ))}
-              </Stack>
+              {team.isMine ? (
+                <Stack gap="xs">
+                  {team.players.map((p) => (
+                    <Group key={p.id} justify="space-between" wrap="nowrap">
+                      <Text fw={500}>{p.name}</Text>
+                      <Text size="sm" c="dimmed">
+                        {p.odds}
+                      </Text>
+                    </Group>
+                  ))}
+                </Stack>
+              ) : (
+                <Text size="sm" c="dimmed">
+                  Hidden until the tournament starts.
+                </Text>
+              )}
             </Accordion.Panel>
           </Accordion.Item>
         ))}

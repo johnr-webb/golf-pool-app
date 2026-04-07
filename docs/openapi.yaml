@@ -81,6 +81,36 @@ components:
         espnMapped:
           type: boolean
 
+    TeamOwner:
+      type: object
+      properties:
+        userId:
+          type: string
+        ownerName:
+          type: string
+
+    TeamDetail:
+      allOf:
+        - $ref: "#/components/schemas/TeamOwner"
+        - type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            poolId:
+              type: string
+            players:
+              type: array
+              items:
+                $ref: "#/components/schemas/PlayerDetail"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
     PlayerScore:
       type: object
       properties:
@@ -173,25 +203,20 @@ components:
               $ref: "#/components/schemas/ScoringRule"
 
     UpcomingTeam:
-      type: object
-      properties:
-        teamId:
-          type: string
-        teamName:
-          type: string
-        userId:
-          type: string
-        players:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-              name:
-                type: string
-              odds:
-                type: string
+      allOf:
+        - $ref: "#/components/schemas/TeamOwner"
+        - type: object
+          properties:
+            teamId:
+              type: string
+            teamName:
+              type: string
+            isMine:
+              type: boolean
+            players:
+              type: array
+              items:
+                $ref: "#/components/schemas/PlayerDetail"
 
     Me:
       type: object
@@ -773,7 +798,7 @@ paths:
       description: |
         Returns all teams in the pool with scores.
 
-        - If the tournament status is `upcoming`, returns teams with player info but no scores.
+        - If the tournament status is `upcoming`, returns all team rows with owner info. Only the caller's own team includes players.
         - If the tournament is `active` or `completed`, returns live/final scores from ESPN, sorted ascending (lower = better).
       tags: [Pools]
       parameters:
@@ -904,24 +929,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  name:
-                    type: string
-                  userId:
-                    type: string
-                  poolId:
-                    type: string
-                  players:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/PlayerDetail"
-                  createdAt:
-                    type: string
-                  updatedAt:
-                    type: string
+                $ref: "#/components/schemas/TeamDetail"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":

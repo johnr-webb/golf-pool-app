@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getSafeAuthRedirect } from "@/lib/auth/redirect";
 
 // Next.js edge middleware. Runs before any page renders. Its job is
 // cheap: check whether the __session cookie is present and redirect to
@@ -6,7 +7,8 @@ import { NextResponse, type NextRequest } from "next/server";
 // run firebase-admin (Node-only). Full verification happens in the
 // backend's requireAuth middleware when the actual API call fires.
 //
-// Authed users hitting /login or /signup get bounced to /pools.
+// Authed users hitting /login or /signup get bounced to the safe `next`
+// destination when provided, otherwise /pools.
 //
 // Why this kills the biggest loading spinner:
 // previously the browser had to download the whole app bundle, rehydrate
@@ -35,10 +37,8 @@ export function middleware(req: NextRequest) {
   if (isPublic(pathname)) {
     // Bounce already-authed users away from auth pages.
     if (hasSession) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/pools";
-      url.search = "";
-      return NextResponse.redirect(url);
+      const safeNext = getSafeAuthRedirect(req.nextUrl.searchParams.get("next"));
+      return NextResponse.redirect(new URL(safeNext, req.url));
     }
     return NextResponse.next();
   }

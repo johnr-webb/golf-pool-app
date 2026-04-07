@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { buildAuthPageHref } from "@/lib/auth/redirect";
 
@@ -21,14 +21,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!loading && !user) {
-      const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+      const currentPath = `${pathname}${window.location.search}`;
       router.replace(buildAuthPageHref("/login", currentPath));
     }
-  }, [user, loading, pathname, router, searchParams]);
+  }, [user, loading, pathname, router]);
 
   return <>{children}</>;
 }

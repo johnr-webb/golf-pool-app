@@ -11,7 +11,9 @@ export const apiBaseUrl =
     ? process.env.NEXT_PUBLIC_API_BASE_URL
     : "/api";
 
-const API_TARGET = process.env.INTERNAL_API_URL;
+const API_TARGET =
+  process.env.INTERNAL_API_URL ||
+  "https://us-central1-golf-pool-app-492300.cloudfunctions.net/api";
 
 const config: NextConfig = {
   reactStrictMode: true,

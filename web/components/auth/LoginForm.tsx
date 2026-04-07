@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -43,7 +43,10 @@ export function LoginForm() {
         nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
           ? nextPath
           : "/pools";
-      router.replace(safeNext);
+      startTransition(() => {
+        router.replace(safeNext);
+        router.refresh();
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign in failed");
     } finally {

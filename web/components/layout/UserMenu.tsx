@@ -1,5 +1,8 @@
 "use client";
 
+"use client";
+
+import { startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Menu, UnstyledButton, Group, Text } from "@mantine/core";
 import { IconLogout } from "@tabler/icons-react";
@@ -16,7 +19,10 @@ export function UserMenu() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.replace("/login");
+    startTransition(() => {
+      router.replace("/login");
+      router.refresh();
+    });
   };
 
   return (

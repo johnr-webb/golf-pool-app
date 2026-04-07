@@ -40,6 +40,11 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function syncServerSession(user: User): Promise<void> {
+  const idToken = await user.getIdToken();
+  await createSession(idToken);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [me, setMe] = useState<Me | null>(null);
@@ -61,6 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setMe(null);
         setLoading(false);
         return;
+      }
+      try {
+        await syncServerSession(fbUser);
+      } catch {
+        /* non-fatal */
       }
       if (loadedForUid.current === fbUser.uid) {
         setLoading(false);
@@ -93,8 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // fails we swallow — Bearer token fallback still works, just without
     // the SSR win.
     try {
-      const idToken = await cred.user.getIdToken();
-      await createSession(idToken);
+      await syncServerSession(cred.user);
     } catch {
       /* non-fatal */
     }
@@ -118,8 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Mint a session cookie before calling the API so subsequent PATCH
       // goes through on the cookie path (and SSR works on next navigation).
       try {
-        const idToken = await cred.user.getIdToken();
-        await createSession(idToken);
+        await syncServerSession(cred.user);
       } catch {
         /* non-fatal — Bearer token still works */
       }

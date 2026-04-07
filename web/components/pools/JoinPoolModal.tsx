@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -56,11 +56,17 @@ export function JoinPoolModal({ opened, onClose }: Props) {
     setError(null);
     try {
       await joinPool(trimmedId, password);
-      router.replace(`/pools/${trimmedId}/team/new`);
+      startTransition(() => {
+        router.replace(`/pools/${trimmedId}`);
+        router.refresh();
+      });
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         // Already have a team — drop them on the pool detail instead.
-        router.replace(`/pools/${trimmedId}`);
+        startTransition(() => {
+          router.replace(`/pools/${trimmedId}`);
+          router.refresh();
+        });
         return;
       }
       setError(

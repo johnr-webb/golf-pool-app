@@ -5,24 +5,6 @@
     "runtime": "nodejs22",
     "predeploy": []
   },
-  "hosting": {
-    "source": "web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "function": "api"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
   "emulators": {
     "functions": {
       "port": 5001

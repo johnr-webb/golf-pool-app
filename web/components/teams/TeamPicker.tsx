@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -69,7 +69,10 @@ export function TeamPicker({
       } else {
         await createTeam(pool.id, { name: name.trim(), picks });
       }
-      router.replace(`/pools/${pool.id}`);
+      startTransition(() => {
+        router.replace(`/pools/${pool.id}`);
+        router.refresh();
+      });
     } catch (e) {
       setError(
         e instanceof ApiError

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -96,7 +96,10 @@ export function PoolCreateForm() {
         tiers,
         scoringRule: { countBest, outOf },
       });
-      router.replace(`/pools/${id}/team/new`);
+      startTransition(() => {
+        router.replace(`/pools/${id}`);
+        router.refresh();
+      });
     } catch (e) {
       setError(
         e instanceof ApiError

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -47,7 +47,10 @@ export function SignupForm() {
         values.displayName,
         values.realName,
       );
-      router.replace("/pools");
+      startTransition(() => {
+        router.replace("/pools");
+        router.refresh();
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign up failed");
     } finally {

@@ -1,8 +1,8 @@
 import { apiFetch } from "./client";
 
-// Exchange a freshly minted Firebase ID token for an HttpOnly session cookie.
+// Exchange the current Firebase ID token for an HttpOnly session cookie.
 // The backend sets __session on the response; the browser stores it without
-// JS ever touching the value. Must be called within ~5 min of Firebase auth.
+// JS ever touching the value.
 export const createSession = (idToken: string) =>
   apiFetch<{ success: boolean }>("/session", {
     method: "POST",

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { startTransition, use, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -34,11 +34,17 @@ export default function JoinPoolPage({
     try {
       await joinPool(poolId, password);
       // On success, go straight to team creation.
-      router.replace(`/pools/${poolId}/team/new`);
+      startTransition(() => {
+        router.replace(`/pools/${poolId}`);
+        router.refresh();
+      });
     } catch (e) {
       // 409 means "already have a team" — route to the leaderboard instead.
       if (e instanceof ApiError && e.status === 409) {
-        router.replace(`/pools/${poolId}`);
+        startTransition(() => {
+          router.replace(`/pools/${poolId}`);
+          router.refresh();
+        });
         return;
       }
       setError(

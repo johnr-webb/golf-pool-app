@@ -2,7 +2,7 @@
 
 import { startTransition, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Anchor,
@@ -15,10 +15,13 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { buildAuthPageHref, getSafeAuthRedirect } from "@/lib/auth/redirect";
 
 export function SignupForm() {
   const { signUp } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,8 +50,9 @@ export function SignupForm() {
         values.displayName,
         values.realName,
       );
+      const safeNext = getSafeAuthRedirect(nextPath);
       startTransition(() => {
-        router.replace("/pools");
+        router.replace(safeNext);
         router.refresh();
       });
     } catch (e) {
@@ -100,7 +104,12 @@ export function SignupForm() {
           </Button>
         </Stack>
       </form>
-      <Anchor component={Link} href="/login" size="sm" ta="center">
+      <Anchor
+        component={Link}
+        href={buildAuthPageHref("/login", nextPath)}
+        size="sm"
+        ta="center"
+      >
         Already have an account? Sign in
       </Anchor>
     </Stack>

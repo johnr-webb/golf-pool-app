@@ -15,6 +15,7 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { buildAuthPageHref, getSafeAuthRedirect } from "@/lib/auth/redirect";
 
 export function LoginForm() {
   const { signIn } = useAuth();
@@ -37,12 +38,7 @@ export function LoginForm() {
     setError(null);
     try {
       await signIn(values.email, values.password);
-      // Honor the ?next= hint planted by the middleware, but only if it's a
-      // safe relative path (defense against open-redirect).
-      const safeNext =
-        nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
-          ? nextPath
-          : "/pools";
+      const safeNext = getSafeAuthRedirect(nextPath);
       startTransition(() => {
         router.replace(safeNext);
         router.refresh();
@@ -82,7 +78,12 @@ export function LoginForm() {
           </Button>
         </Stack>
       </form>
-      <Anchor component={Link} href="/signup" size="sm" ta="center">
+      <Anchor
+        component={Link}
+        href={buildAuthPageHref("/signup", nextPath)}
+        size="sm"
+        ta="center"
+      >
         Don&apos;t have an account? Sign up
       </Anchor>
     </Stack>

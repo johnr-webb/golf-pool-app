@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { db } from "../config/firebase";
 import { FieldValue } from "firebase-admin/firestore";
+import { logRouteAck, logRouteStep } from "../utils/logging";
 
 const router = Router();
 
@@ -12,7 +13,9 @@ const router = Router();
 // routes return 403.
 router.use((_req, res, next) => {
   if (process.env.FUNCTIONS_EMULATOR !== "true") {
-    res.status(403).json({ error: "Dev endpoints are only available on the emulator" });
+    res
+      .status(403)
+      .json({ error: "Dev endpoints are only available on the emulator" });
     return;
   }
   next();
@@ -35,7 +38,8 @@ interface SampleCompetitor {
  * (which is already leaderboard order — position 1 is first).
  */
 function loadSampleCompetitors(): SampleCompetitor[] {
-  const fixturePath = process.env.ESPN_FIXTURE_PATH ?? "../plan/sample_data.json";
+  const fixturePath =
+    process.env.ESPN_FIXTURE_PATH ?? "../plan/sample_data.json";
   const resolved = path.isAbsolute(fixturePath)
     ? fixturePath
     : path.resolve(process.cwd(), fixturePath);
@@ -65,11 +69,32 @@ function loadSampleCompetitors(): SampleCompetitor[] {
 // exactly 4/10/10 players populate tiers 1/2/3.
 const SYNTHETIC_ODDS = [
   // Tier 1: positions 1-4, shortest odds (favorites)
-  "+200", "+300", "+400", "+500",
+  "+200",
+  "+300",
+  "+400",
+  "+500",
   // Tier 2: positions 5-14
-  "+750", "+900", "+1100", "+1300", "+1500", "+1650", "+1750", "+1850", "+1950", "+2000",
+  "+750",
+  "+900",
+  "+1100",
+  "+1300",
+  "+1500",
+  "+1650",
+  "+1750",
+  "+1850",
+  "+1950",
+  "+2000",
   // Tier 3: positions 15-24
-  "+2500", "+3000", "+3500", "+4000", "+4500", "+5000", "+6000", "+7000", "+8000", "+9000",
+  "+2500",
+  "+3000",
+  "+3500",
+  "+4000",
+  "+4500",
+  "+5000",
+  "+6000",
+  "+7000",
+  "+8000",
+  "+9000",
 ];
 
 const POOL_TIERS = [
@@ -85,6 +110,9 @@ const SCORING_RULE = { countBest: 4, outOf: 6 };
 // ---------------------------------------------------------------------------
 
 router.post("/reset", async (_req, res) => {
+  logRouteAck("POST /dev/reset", _req);
+  logRouteStep("POST /dev/reset", _req, "clearing seeded collections");
+
   const collections = ["users", "tournaments", "players", "pools", "teams"];
   for (const name of collections) {
     const snap = await db.collection(name).get();
@@ -116,7 +144,12 @@ router.post("/seed", async (req, res) => {
     adminUid?: string;
     userUid?: string;
   };
+  logRouteAck("POST /dev/seed", req, {
+    hasAdminUid: Boolean(adminUid),
+    hasUserUid: Boolean(userUid),
+  });
 
+  logRouteStep("POST /dev/seed", req, "loading ESPN sample fixture");
   const competitors = loadSampleCompetitors();
   if (competitors.length < 24) {
     res.status(500).json({
@@ -124,6 +157,15 @@ router.post("/seed", async (req, res) => {
     });
     return;
   }
+
+  logRouteStep(
+    "POST /dev/seed",
+    req,
+    "writing tournament, pool, and team fixtures",
+    {
+      competitorCount: competitors.length,
+    },
+  );
 
   // -------------------------------------------------------------------------
   // Tournament A — Active, mirrors sample_data.json
@@ -140,7 +182,12 @@ router.post("/seed", async (req, res) => {
   });
 
   // Pick the top 24 competitors, assign synthetic odds, pre-map espnId.
-  const tournAPlayers: { id: string; name: string; odds: string; espnId: string }[] = [];
+  const tournAPlayers: {
+    id: string;
+    name: string;
+    odds: string;
+    espnId: string;
+  }[] = [];
   const batchA = db.batch();
   for (let i = 0; i < 24; i++) {
     const c = competitors[i];
@@ -153,7 +200,12 @@ router.post("/seed", async (req, res) => {
       espnMapped: true,
       createdAt: FieldValue.serverTimestamp(),
     });
-    tournAPlayers.push({ id: ref.id, name: c.name, odds: SYNTHETIC_ODDS[i], espnId: c.id });
+    tournAPlayers.push({
+      id: ref.id,
+      name: c.name,
+      odds: SYNTHETIC_ODDS[i],
+      espnId: c.id,
+    });
   }
   await batchA.commit();
 
@@ -187,7 +239,11 @@ router.post("/seed", async (req, res) => {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
-    seededTeams.push({ teamId: teamRef.id, userId: adminUid, name: "Admin Picks" });
+    seededTeams.push({
+      teamId: teamRef.id,
+      userId: adminUid,
+      name: "Admin Picks",
+    });
   }
 
   if (userUid) {
@@ -200,7 +256,11 @@ router.post("/seed", async (req, res) => {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
-    seededTeams.push({ teamId: teamRef.id, userId: userUid, name: "User Picks" });
+    seededTeams.push({
+      teamId: teamRef.id,
+      userId: userUid,
+      name: "User Picks",
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -226,9 +286,24 @@ router.post("/seed", async (req, res) => {
   // spread across the same 3 tiers (6 per tier, picksRequired stays 2/2/2 —
   // plenty of choice for picking).
   const tournBOdds = [
-    "+150", "+250", "+350", "+450", "+500", "+500",           // Tier 1 (6 players)
-    "+600", "+800", "+1000", "+1500", "+1800", "+2000",       // Tier 2 (6 players)
-    "+2500", "+3500", "+4500", "+6000", "+7500", "+9000",     // Tier 3 (6 players)
+    "+150",
+    "+250",
+    "+350",
+    "+450",
+    "+500",
+    "+500", // Tier 1 (6 players)
+    "+600",
+    "+800",
+    "+1000",
+    "+1500",
+    "+1800",
+    "+2000", // Tier 2 (6 players)
+    "+2500",
+    "+3500",
+    "+4500",
+    "+6000",
+    "+7500",
+    "+9000", // Tier 3 (6 players)
   ];
   const batchB = db.batch();
   for (let i = 0; i < 18; i++) {

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { auth, db } from "../config/firebase";
 
 export interface AuthRequest extends Request {
+  requestId?: string;
   uid?: string;
   admin?: boolean;
 }

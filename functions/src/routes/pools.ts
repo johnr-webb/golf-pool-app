@@ -2,16 +2,18 @@ import { Router } from "express";
 import { db } from "../config/firebase";
 import { AuthRequest, requireAuth, requireAdmin } from "../middleware/auth";
 import { FieldValue } from "firebase-admin/firestore";
-import {
-  fetchScoreboard,
-  fetchScoreboardForEvent,
-} from "../services/espn";
+import { fetchScoreboard, fetchScoreboardForEvent } from "../services/espn";
 import {
   parseScore,
   applyMissedCutPenalty,
   calculateTeamScore,
 } from "../services/leaderboard";
 import { LeaderboardEntry } from "../types";
+import {
+  loadOwnerNames,
+  serializePlayerDetail,
+} from "../utils/teamSerializers";
+import { logRouteAck, logRouteError, logRouteStep } from "../utils/logging";
 
 const router = Router();
 
@@ -19,10 +21,16 @@ const router = Router();
 // architectural question about per-pool ownership in plan/PLAN_V3.md.
 router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
   const { name, password, tournamentId, tiers, scoringRule } = req.body;
+  logRouteAck("POST /pools", req, {
+    name: name ?? null,
+    tournamentId: tournamentId ?? null,
+    tiersCount: Array.isArray(tiers) ? tiers.length : null,
+  });
 
   if (!name || !password || !tournamentId || !tiers || !scoringRule) {
     res.status(400).json({
-      error: "name, password, tournamentId, tiers, and scoringRule are required",
+      error:
+        "name, password, tournamentId, tiers, and scoringRule are required",
     });
     return;
   }
@@ -34,6 +42,7 @@ router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
     return;
   }
 
+  logRouteStep("POST /pools", req, "creating pool document", { tournamentId });
   const doc = await db.collection("pools").add({
     name,
     password,
@@ -52,6 +61,10 @@ router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
 router.post("/:poolId/join", requireAuth, async (req: AuthRequest, res) => {
   const { poolId } = req.params;
   const { password } = req.body;
+  logRouteAck("POST /pools/:poolId/join", req, {
+    poolId,
+    passwordProvided: typeof password === "string",
+  });
 
   const poolDoc = await db.collection("pools").doc(poolId).get();
   if (!poolDoc.exists) {
@@ -78,12 +91,17 @@ router.post("/:poolId/join", requireAuth, async (req: AuthRequest, res) => {
     return;
   }
 
-  res.json({ success: true, poolId, message: "Password accepted. Create a team to join." });
+  res.json({
+    success: true,
+    poolId,
+    message: "Password accepted. Create a team to join.",
+  });
 });
 
 // POST /pools/:poolId/leave — Leave pool
 router.post("/:poolId/leave", requireAuth, async (req: AuthRequest, res) => {
   const { poolId } = req.params;
+  logRouteAck("POST /pools/:poolId/leave", req, { poolId });
 
   // Find and delete user's team in this pool
   const teamsSnap = await db
@@ -97,6 +115,15 @@ router.post("/:poolId/leave", requireAuth, async (req: AuthRequest, res) => {
     return;
   }
 
+  logRouteStep(
+    "POST /pools/:poolId/leave",
+    req,
+    "deleting pool team documents",
+    {
+      poolId,
+      teamCount: teamsSnap.docs.length,
+    },
+  );
   const batch = db.batch();
   teamsSnap.docs.forEach((doc) => batch.delete(doc.ref));
   await batch.commit();
@@ -107,6 +134,8 @@ router.post("/:poolId/leave", requireAuth, async (req: AuthRequest, res) => {
 // GET /pools/mine — List pools the caller is a member of (has a team) or created.
 // Registered before /:poolId routes so Express doesn't treat "mine" as a poolId.
 router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
+  logRouteAck("GET /pools/mine", req);
+
   // Pools where I have a team → capture myTeamId per pool
   const teamsSnap = await db
     .collection("teams")
@@ -178,6 +207,7 @@ router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
 // Does NOT return the password. Used by the team picker and pool detail screens.
 router.get("/:poolId", requireAuth, async (req: AuthRequest, res) => {
   const { poolId } = req.params;
+  logRouteAck("GET /pools/:poolId", req, { poolId });
 
   const poolDoc = await db.collection("pools").doc(poolId).get();
   if (!poolDoc.exists) {
@@ -215,126 +245,185 @@ router.get("/:poolId", requireAuth, async (req: AuthRequest, res) => {
 });
 
 // GET /pools/:poolId/leaderboard — Get leaderboard
-router.get("/:poolId/leaderboard", requireAuth, async (req: AuthRequest, res) => {
-  const { poolId } = req.params;
+router.get(
+  "/:poolId/leaderboard",
+  requireAuth,
+  async (req: AuthRequest, res) => {
+    const { poolId } = req.params;
+    logRouteAck("GET /pools/:poolId/leaderboard", req, { poolId });
 
-  const poolDoc = await db.collection("pools").doc(poolId).get();
-  if (!poolDoc.exists) {
-    res.status(404).json({ error: "Pool not found" });
-    return;
-  }
-  const pool = poolDoc.data()!;
+    const poolDoc = await db.collection("pools").doc(poolId).get();
+    if (!poolDoc.exists) {
+      res.status(404).json({ error: "Pool not found" });
+      return;
+    }
+    const pool = poolDoc.data()!;
 
-  // Get tournament
-  const tournDoc = await db.collection("tournaments").doc(pool.tournamentId).get();
-  if (!tournDoc.exists) {
-    res.status(404).json({ error: "Tournament not found" });
-    return;
-  }
-  const tournament = tournDoc.data()!;
+    // Get tournament
+    const tournDoc = await db
+      .collection("tournaments")
+      .doc(pool.tournamentId)
+      .get();
+    if (!tournDoc.exists) {
+      res.status(404).json({ error: "Tournament not found" });
+      return;
+    }
+    const tournament = tournDoc.data()!;
 
-  // Get all teams in pool
-  const teamsSnap = await db
-    .collection("teams")
-    .where("poolId", "==", poolId)
-    .get();
+    // Get all teams in pool
+    const teamsSnap = await db
+      .collection("teams")
+      .where("poolId", "==", poolId)
+      .get();
 
-  if (teamsSnap.empty) {
-    res.json({ leaderboard: [] });
-    return;
-  }
+    if (teamsSnap.empty) {
+      if (tournament.status === "upcoming") {
+        res.json({ status: "upcoming", teams: [] });
+        return;
+      }
+      res.json({ status: tournament.status, leaderboard: [] });
+      return;
+    }
 
-  // If tournament hasn't started, return teams without scores
-  if (tournament.status === "upcoming") {
-    const teams = await Promise.all(
+    // If tournament hasn't started, return teams without scores
+    if (tournament.status === "upcoming") {
+      const ownerNameByUserId = await loadOwnerNames(
+        teamsSnap.docs.map((teamDoc) => teamDoc.data().userId as string),
+      );
+
+      const teams = await Promise.all(
+        teamsSnap.docs.map(async (teamDoc) => {
+          const team = teamDoc.data();
+          const isMine = team.userId === req.uid;
+          const playerDocs = isMine
+            ? await Promise.all(
+                team.picks.map((id: string) =>
+                  db.collection("players").doc(id).get(),
+                ),
+              )
+            : [];
+          return {
+            teamId: teamDoc.id,
+            teamName: team.name,
+            userId: team.userId,
+            ownerName: ownerNameByUserId.get(team.userId) ?? "Unknown player",
+            isMine,
+            players: playerDocs
+              .map(serializePlayerDetail)
+              .filter((player) => player !== null),
+          };
+        }),
+      );
+      res.json({ status: "upcoming", teams });
+      return;
+    }
+
+    // Tournament is active or completed — fetch ESPN scores
+    let competitors;
+    try {
+      logRouteStep(
+        "GET /pools/:poolId/leaderboard",
+        req,
+        "fetching ESPN scores",
+        {
+          poolId,
+          tournamentId: pool.tournamentId,
+          espnEventId: tournament.espnEventId ?? null,
+        },
+      );
+      competitors = tournament.espnEventId
+        ? await fetchScoreboardForEvent(tournament.espnEventId)
+        : await fetchScoreboard();
+    } catch (error) {
+      logRouteError(
+        "GET /pools/:poolId/leaderboard",
+        req,
+        "failed to fetch ESPN scores",
+        error,
+        {
+          poolId,
+          tournamentId: pool.tournamentId,
+          espnEventId: tournament.espnEventId ?? null,
+        },
+      );
+      res.status(502).json({ error: "Failed to fetch ESPN scores" });
+      return;
+    }
+
+    // Build score map: espnId -> { score, missedCut }
+    const scoreMap = new Map<string, { score: number; missedCut: boolean }>();
+    for (const c of competitors) {
+      const missedCut =
+        c.status?.type?.name === "STATUS_CUT" ||
+        c.status?.type?.description?.toLowerCase().includes("cut");
+      scoreMap.set(c.id, {
+        score: parseScore(c.score),
+        missedCut: !!missedCut,
+      });
+    }
+
+    // Apply missed-cut penalty
+    const adjustedScores = applyMissedCutPenalty(scoreMap);
+
+    // Calculate each team's score
+    const leaderboard: LeaderboardEntry[] = await Promise.all(
       teamsSnap.docs.map(async (teamDoc) => {
         const team = teamDoc.data();
         const playerDocs = await Promise.all(
-          team.picks.map((id: string) => db.collection("players").doc(id).get())
+          team.picks.map((id: string) =>
+            db.collection("players").doc(id).get(),
+          ),
         );
+
+        const playerScores = playerDocs
+          .filter((d) => d.exists)
+          .map((d) => {
+            const data = d.data()!;
+            const espnData = data.espnId
+              ? adjustedScores.get(data.espnId)
+              : null;
+            return {
+              playerId: d.id,
+              playerName: data.name,
+              espnId: data.espnId,
+              score: espnData?.score ?? null,
+              missedCut: espnData?.missedCut ?? false,
+            };
+          });
+
+        const result = calculateTeamScore(playerScores, pool.scoringRule);
         return {
           teamId: teamDoc.id,
           teamName: team.name,
           userId: team.userId,
-          players: playerDocs
-            .filter((d) => d.exists)
-            .map((d) => ({ id: d.id, name: d.data()!.name, odds: d.data()!.odds })),
+          totalScore: result.totalScore,
+          playerScores: result.map((r) => ({
+            playerId: r.playerId,
+            playerName: r.playerName,
+            score: r.score,
+            missedCut: r.missedCut,
+            counting: r.counting,
+          })),
         };
-      })
+      }),
     );
-    res.json({ status: "upcoming", teams });
-    return;
-  }
 
-  // Tournament is active or completed — fetch ESPN scores
-  let competitors;
-  try {
-    competitors = tournament.espnEventId
-      ? await fetchScoreboardForEvent(tournament.espnEventId)
-      : await fetchScoreboard();
-  } catch {
-    res.status(502).json({ error: "Failed to fetch ESPN scores" });
-    return;
-  }
+    // Sort by total score ascending (lowest is best in golf)
+    leaderboard.sort((a, b) => a.totalScore - b.totalScore);
 
-  // Build score map: espnId -> { score, missedCut }
-  const scoreMap = new Map<string, { score: number; missedCut: boolean }>();
-  for (const c of competitors) {
-    const missedCut =
-      c.status?.type?.name === "STATUS_CUT" ||
-      c.status?.type?.description?.toLowerCase().includes("cut");
-    scoreMap.set(c.id, {
-      score: parseScore(c.score),
-      missedCut: !!missedCut,
-    });
-  }
+    logRouteStep(
+      "GET /pools/:poolId/leaderboard",
+      req,
+      "calculated leaderboard",
+      {
+        poolId,
+        teamCount: leaderboard.length,
+        tournamentStatus: tournament.status,
+      },
+    );
 
-  // Apply missed-cut penalty
-  const adjustedScores = applyMissedCutPenalty(scoreMap);
-
-  // Calculate each team's score
-  const leaderboard: LeaderboardEntry[] = await Promise.all(
-    teamsSnap.docs.map(async (teamDoc) => {
-      const team = teamDoc.data();
-      const playerDocs = await Promise.all(
-        team.picks.map((id: string) => db.collection("players").doc(id).get())
-      );
-
-      const playerScores = playerDocs
-        .filter((d) => d.exists)
-        .map((d) => {
-          const data = d.data()!;
-          const espnData = data.espnId ? adjustedScores.get(data.espnId) : null;
-          return {
-            playerId: d.id,
-            playerName: data.name,
-            espnId: data.espnId,
-            score: espnData?.score ?? null,
-            missedCut: espnData?.missedCut ?? false,
-          };
-        });
-
-      const result = calculateTeamScore(playerScores, pool.scoringRule);
-      return {
-        teamId: teamDoc.id,
-        teamName: team.name,
-        userId: team.userId,
-        totalScore: result.totalScore,
-        playerScores: result.map((r) => ({
-          playerId: r.playerId,
-          playerName: r.playerName,
-          score: r.score,
-          missedCut: r.missedCut,
-          counting: r.counting,
-        })),
-      };
-    })
-  );
-
-  // Sort by total score ascending (lowest is best in golf)
-  leaderboard.sort((a, b) => a.totalScore - b.totalScore);
-
-  res.json({ status: tournament.status, leaderboard });
-});
+    res.json({ status: tournament.status, leaderboard });
+  },
+);
 
 export default router;

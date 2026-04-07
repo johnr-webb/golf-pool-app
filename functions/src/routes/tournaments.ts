@@ -4,6 +4,7 @@ import { AuthRequest, requireAuth, requireAdmin } from "../middleware/auth";
 import { fetchScoreboard, matchPlayers } from "../services/espn";
 import { fetchOdds, aggregateOdds } from "../services/odds";
 import { FieldValue } from "firebase-admin/firestore";
+import { logRouteAck, logRouteError, logRouteStep } from "../utils/logging";
 
 const router = Router();
 
@@ -11,6 +12,10 @@ const router = Router();
 // Optional ?status=upcoming|active|completed filter. Sorted by startDate asc.
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   const statusFilter = req.query.status as string | undefined;
+  logRouteAck("GET /tournaments", req, {
+    statusFilter: statusFilter ?? null,
+  });
+
   const validStatuses = ["upcoming", "active", "completed"];
 
   let query: FirebaseFirestore.Query = db.collection("tournaments");
@@ -50,11 +55,11 @@ router.get(
   requireAuth,
   async (req: AuthRequest, res) => {
     const { tournamentId } = req.params;
+    logRouteAck("GET /tournaments/:tournamentId/players", req, {
+      tournamentId,
+    });
 
-    const tournDoc = await db
-      .collection("tournaments")
-      .doc(tournamentId)
-      .get();
+    const tournDoc = await db.collection("tournaments").doc(tournamentId).get();
     if (!tournDoc.exists) {
       res.status(404).json({ error: "Tournament not found" });
       return;
@@ -84,6 +89,10 @@ router.get(
 // POST /tournaments — Create tournament (admin only)
 router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
   const { name, espnEventId, startDate, endDate } = req.body;
+  logRouteAck("POST /tournaments", req, {
+    name: name ?? null,
+    hasEspnEventId: Boolean(espnEventId),
+  });
 
   if (!name || !startDate || !endDate) {
     res
@@ -92,6 +101,7 @@ router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
     return;
   }
 
+  logRouteStep("POST /tournaments", req, "creating tournament document");
   const doc = await db.collection("tournaments").add({
     name,
     espnEventId: espnEventId || null,
@@ -113,6 +123,10 @@ router.post(
   async (req: AuthRequest, res) => {
     const { tournamentId } = req.params;
     const { players } = req.body;
+    logRouteAck("POST /tournaments/:tournamentId/players", req, {
+      tournamentId,
+      playersCount: Array.isArray(players) ? players.length : null,
+    });
 
     if (!Array.isArray(players) || players.length === 0) {
       res.status(400).json({ error: "players array is required" });
@@ -126,6 +140,15 @@ router.post(
       return;
     }
 
+    logRouteStep(
+      "POST /tournaments/:tournamentId/players",
+      req,
+      "creating player documents",
+      {
+        tournamentId,
+        playersCount: players.length,
+      },
+    );
     const batch = db.batch();
     const ids: string[] = [];
 
@@ -163,6 +186,11 @@ router.post(
   async (req: AuthRequest, res) => {
     const { tournamentId } = req.params;
     const { sportKey, apiKey } = req.body;
+    logRouteAck("POST /tournaments/:tournamentId/import-odds", req, {
+      tournamentId,
+      sportKey: sportKey ?? null,
+      hasApiKey: Boolean(apiKey || process.env.ODDS_API_KEY),
+    });
 
     if (!sportKey) {
       res.status(400).json({ error: "sportKey is required" });
@@ -201,7 +229,30 @@ router.post(
     }
 
     // Fetch and aggregate odds
-    const events = await fetchOdds(sportKey, resolvedKey);
+    let events;
+    try {
+      logRouteStep(
+        "POST /tournaments/:tournamentId/import-odds",
+        req,
+        "fetching odds API data",
+        {
+          tournamentId,
+          sportKey,
+        },
+      );
+      events = await fetchOdds(sportKey, resolvedKey);
+    } catch (error) {
+      logRouteError(
+        "POST /tournaments/:tournamentId/import-odds",
+        req,
+        "failed to fetch odds API data",
+        error,
+        { tournamentId, sportKey },
+      );
+      res.status(502).json({ error: "Failed to fetch odds API data" });
+      return;
+    }
+
     if (events.length === 0) {
       res.status(502).json({ error: "No events returned from odds API" });
       return;
@@ -214,6 +265,15 @@ router.post(
     }
 
     // Batch-write player docs
+    logRouteStep(
+      "POST /tournaments/:tournamentId/import-odds",
+      req,
+      "writing imported player odds",
+      {
+        tournamentId,
+        playerCount: players.length,
+      },
+    );
     const batch = db.batch();
     const ids: string[] = [];
 
@@ -252,6 +312,9 @@ router.post(
   requireAdmin,
   async (req: AuthRequest, res) => {
     const { tournamentId } = req.params;
+    logRouteAck("POST /tournaments/:tournamentId/sync-espn", req, {
+      tournamentId,
+    });
 
     // Get tournament to check for espnEventId
     const tournDoc = await db.collection("tournaments").doc(tournamentId).get();
@@ -282,7 +345,30 @@ router.post(
     }));
 
     // Fetch ESPN data
-    const competitors = await fetchScoreboard();
+    let competitors;
+    try {
+      logRouteStep(
+        "POST /tournaments/:tournamentId/sync-espn",
+        req,
+        "fetching ESPN scoreboard",
+        {
+          tournamentId,
+          unmappedPlayers: ourPlayers.length,
+        },
+      );
+      competitors = await fetchScoreboard();
+    } catch (error) {
+      logRouteError(
+        "POST /tournaments/:tournamentId/sync-espn",
+        req,
+        "failed to fetch ESPN scoreboard",
+        error,
+        { tournamentId },
+      );
+      res.status(502).json({ error: "Failed to fetch ESPN scoreboard" });
+      return;
+    }
+
     if (competitors.length === 0) {
       res.status(502).json({ error: "No competitors returned from ESPN" });
       return;
@@ -290,6 +376,16 @@ router.post(
 
     // Match names
     const { matched, unmatched } = matchPlayers(ourPlayers, competitors);
+    logRouteStep(
+      "POST /tournaments/:tournamentId/sync-espn",
+      req,
+      "matched tournament players to ESPN competitors",
+      {
+        tournamentId,
+        matched: matched.length,
+        unmatched: unmatched.length,
+      },
+    );
 
     // Update matched players in Firestore
     const batch = db.batch();
@@ -318,6 +414,10 @@ router.put(
   async (req: AuthRequest, res) => {
     const { playerId } = req.params;
     const { espnId } = req.body;
+    logRouteAck("PUT /tournaments/players/:playerId/espn-link", req, {
+      playerId,
+      hasEspnId: Boolean(espnId),
+    });
 
     if (!espnId) {
       res.status(400).json({ error: "espnId is required" });
@@ -331,6 +431,15 @@ router.put(
       return;
     }
 
+    logRouteStep(
+      "PUT /tournaments/players/:playerId/espn-link",
+      req,
+      "updating manual ESPN link",
+      {
+        playerId,
+        espnId,
+      },
+    );
     await playerRef.update({ espnId, espnMapped: true });
     res.json({ success: true });
   },

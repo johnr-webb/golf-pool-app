@@ -1,0 +1,551 @@
+{
+  "playerCount": 91,
+  "players": [
+    {
+      "id": "7supopEGDzoZMhat3gls",
+      "name": "Scottie Scheffler",
+      "odds": "+550",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "T2nNxYN1wCztUByI1xTd",
+      "name": "Jon Rahm",
+      "odds": "+1000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "FtQhV0khijFLKi3Kaqe3",
+      "name": "Bryson DeChambeau",
+      "odds": "+1138",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "UIzyNK2zbeV9Iov0GrS1",
+      "name": "Rory McIlroy",
+      "odds": "+1200",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "YcfF2C99ngknLUlMhbyY",
+      "name": "Xander Schauffele",
+      "odds": "+1450",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "czmLHK0Vj2wCAMZQva0P",
+      "name": "Ludvig Aberg",
+      "odds": "+1550",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "oUVsCwGHQPEfzxorEFvG",
+      "name": "Cameron Young",
+      "odds": "+2100",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "Gl70Wi9K3vWnVTQJ6zeN",
+      "name": "Matthew Fitzpatrick",
+      "odds": "+2200",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "cRE4uFphSCr0YraxjiFq",
+      "name": "Tommy Fleetwood",
+      "odds": "+2200",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "4MecsbhzAycBWtNiIXRj",
+      "name": "Hideki Matsuyama",
+      "odds": "+2750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "QNqGGNbSv1VxVTNI1Vpu",
+      "name": "Robert Macintyre",
+      "odds": "+3200",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "ki16GfeZNv1kNdjgpX4T",
+      "name": "Collin Morikawa",
+      "odds": "+3200",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "XBKcsaCiThIlcMg6Atbh",
+      "name": "Justin Rose",
+      "odds": "+3250",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "BsBJsqTVoYhTQVnOLPvM",
+      "name": "Min Woo Lee",
+      "odds": "+3400",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "ZyQfSKZIYOcMEUdKM3U6",
+      "name": "Patrick Reed",
+      "odds": "+3650",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "2UCyup65JYEheaAtZkmo",
+      "name": "Brooks Koepka",
+      "odds": "+3850",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "H6u8cfCgJGxk6NQZGWS9",
+      "name": "Jordan Spieth",
+      "odds": "+4100",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "A5UmjeenpU87Kr9PvwE3",
+      "name": "Viktor Hovland",
+      "odds": "+4500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "o5yCJ5vzTwtpIOy3jRdW",
+      "name": "Christopher Gotterup",
+      "odds": "+4750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "uwqln9Nr3MJCMekYL44D",
+      "name": "Si Woo Kim",
+      "odds": "+4950",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "nvkffkrT8e1kgsj0gPzK",
+      "name": "Russell Henley",
+      "odds": "+5250",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "yREZsGbMZlpwsTb5rX7p",
+      "name": "Akshay Bhatia",
+      "odds": "+5600",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "HBHPtPMQSO0kUhygWcy4",
+      "name": "Patrick Cantlay",
+      "odds": "+5900",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "MENwSBw4PB4qDwUmt0pR",
+      "name": "Justin Thomas",
+      "odds": "+6300",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "21ZZP0YyfbV2PxLhN9pw",
+      "name": "Adam Scott",
+      "odds": "+6600",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "fsLrKJcdjNR4vSYw5l2f",
+      "name": "Jake Knapp",
+      "odds": "+6650",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "8R4Otw2ahS10ybpOgHtq",
+      "name": "Shane Lowry",
+      "odds": "+6700",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "JEHOIYPwJmPdoz4LKP64",
+      "name": "Sam Burns",
+      "odds": "+6800",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "gtBTCsk5y3uDahJBIalp",
+      "name": "Jason Day",
+      "odds": "+6850",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "DZVx6PqRg5gcCkvcVcxg",
+      "name": "J. J. Spaun",
+      "odds": "+6900",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "Dm1n9Zp6lhZ4bGdl860V",
+      "name": "Sepp Straka",
+      "odds": "+7000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "YOPOrEvAw9ofnCG2fbL8",
+      "name": "Nicolai Hojgaard",
+      "odds": "+7050",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "6bwvfRWKFt0clp6QaM8V",
+      "name": "Tyrrell Hatton",
+      "odds": "+7300",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "TEvhTF8oQD8o6SlMdvpX",
+      "name": "Corey Conners",
+      "odds": "+7400",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "wVXlqS7TS9CHTiwPjWUH",
+      "name": "Maverick Mcnealy",
+      "odds": "+8000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "8wObfAvSFJdzETukgdtM",
+      "name": "Jacob Bridgeman",
+      "odds": "+8300",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "151UBtZz42HNDT3doMA1",
+      "name": "Gary Woodland",
+      "odds": "+9250",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "z8SHF1D9zgXadcoFVRiL",
+      "name": "Harris English",
+      "odds": "+10000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "E6Dm8t849uX7jrj4tGPD",
+      "name": "Cameron Smith",
+      "odds": "+10500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "JfbokKTzgBBPEfRVBCCY",
+      "name": "Sungjae Im",
+      "odds": "+10750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "MnjJ3zq4do9KRBcxFwgb",
+      "name": "Marco Penge",
+      "odds": "+11000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "XpSp3bbIFAQMpfODUuGa",
+      "name": "Daniel Berger",
+      "odds": "+11500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "EkkuckgxhipXdv6Ltwke",
+      "name": "Kurt Kitayama",
+      "odds": "+12500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "OiLID24SpY8vwu40YBHQ",
+      "name": "Max Homa",
+      "odds": "+12500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "kPh2A69AYtVwAnOfgE5Y",
+      "name": "Ben Griffin",
+      "odds": "+13750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "g3iUr0X210RQ6wSUx0zL",
+      "name": "Rasmus Hojgaard",
+      "odds": "+13750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "xfaSdFdM1Tn4Ks8qXDYo",
+      "name": "Ryan Gerard",
+      "odds": "+15500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "IPlOgWjnArZ3RGj0Kvkv",
+      "name": "Keegan Bradley",
+      "odds": "+17500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "rNtpat3KVa1oshOmMPWS",
+      "name": "Harry Hall",
+      "odds": "+17750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "LGLnMTu5C3SMDblNPWDV",
+      "name": "Alexander Noren",
+      "odds": "+18000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "gIPhxzcLctOXC45LfVAb",
+      "name": "Sam Stevens",
+      "odds": "+19000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "7Ijh188RKxFTGjaElAvc",
+      "name": "Ryan Fox",
+      "odds": "+19250",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "XZY6ncyHrVw4VziSQ6I6",
+      "name": "Brian Harman",
+      "odds": "+20000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "LVqbCa81nu2pKVnqxTza",
+      "name": "Wyndham Clark",
+      "odds": "+20500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "G43Ihg68JMQlyxyT8BnO",
+      "name": "Michael Kim",
+      "odds": "+21250",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "6WL8kGgW7Z6WEXIOjP52",
+      "name": "Aaron Rai",
+      "odds": "+21500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "ZEWqIWFaGc3aDu8kViMA",
+      "name": "Sergio Garcia",
+      "odds": "+22000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "0YjrRh7vXwzw7cYlk4vE",
+      "name": "Casey Jarvis",
+      "odds": "+22000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "phihSanKPl32l8GbuDFS",
+      "name": "Nick Taylor",
+      "odds": "+22250",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "0wE6HwrsUincHlIPKHbF",
+      "name": "Max Greyserman",
+      "odds": "+22500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "t5OD4L3IpkpQlthZ4FKl",
+      "name": "Dustin Johnson",
+      "odds": "+23000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "vR1SLwXfN3LjduUl9m9F",
+      "name": "Carlos Ortiz",
+      "odds": "+23750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "PKuUedsWqa7xKVVPU0YG",
+      "name": "Matt McCarty",
+      "odds": "+25000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "NmCVp9KZmH4FEZLnHlOA",
+      "name": "Kristoffer Reitan",
+      "odds": "+25000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "WjGrtq0Q9A4HkWed2txR",
+      "name": "Tom McKibbin",
+      "odds": "+25500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "SQoK4DOAptqZpdI9N33Q",
+      "name": "Haotong Li",
+      "odds": "+27500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "Lc4ExtW66N5cTXSC4M8S",
+      "name": "Andrew Novak",
+      "odds": "+28000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "FMpOr4tgRZNV8GUHaOch",
+      "name": "Aldrich Potgieter",
+      "odds": "+28750",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "NcPpbqCAutJ7mQ1T6R1k",
+      "name": "Nico Echavarria",
+      "odds": "+29500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "JzadZlAC2o9jw4G8qbev",
+      "name": "Rasmus Neergaard-Petersen",
+      "odds": "+29500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "ck77Pkh5H2NJvZAd9G3W",
+      "name": "John Keefer",
+      "odds": "+32500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "fKEiKuF54UgIUi2cLkCX",
+      "name": "Sami Välimäki",
+      "odds": "+34500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "qO7pn4NWAI1PWJSuFCUJ",
+      "name": "Michael Brennan",
+      "odds": "+35000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "NME8IJjFp1Dc32QU0xEq",
+      "name": "Bubba Watson",
+      "odds": "+45000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "DF4wAuWhzQ3khJTHQNlg",
+      "name": "Zach Johnson",
+      "odds": "+52500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "rK93gQVSjO3qMGmQqiNs",
+      "name": "Charl Schwartzel",
+      "odds": "+57500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "AnrXQS11NE0ENsJS5vkl",
+      "name": "Davis Riley",
+      "odds": "+62500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "vcxuLIVNCYrRGOqZmz06",
+      "name": "Danny Willett",
+      "odds": "+87500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "FJK62bDwq55QtIXzGXQa",
+      "name": "Ben Campbell",
+      "odds": "+100000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "Z7EIAPHrCeSYoBcN10Vk",
+      "name": "Naoyuki Kataoka",
+      "odds": "+100000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "rtbuloHgLxsK1AmzVCRw",
+      "name": "Pongsapak Laopakdee",
+      "odds": "+112500",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "czWdHK93XQhKfYlXxTFD",
+      "name": "Mason Howell",
+      "odds": "+125000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "orwH8j7t0jOMfMLpvpL4",
+      "name": "Ethan Fang",
+      "odds": "+150000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "k7WCLhx1AqbYMBxEeBRz",
+      "name": "Brandon Wu",
+      "odds": "+175000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "GUoLq8v3CMylhkkivSZG",
+      "name": "Jackson Herrington",
+      "odds": "+175000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "CJZdTv6cNPq2O95FZxPJ",
+      "name": "Mateo Pulcini",
+      "odds": "+175000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "31fJnM1CScG1hSeCEOYp",
+      "name": "Angel Cabrera",
+      "odds": "+200000",
+      "bookmakerCount": 3
+    },
+    {
+      "id": "wIehWbFKnjXoF5LeqCcb",
+      "name": "Mike Weir",
+      "odds": "+275000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "4QcGhwLvVInsMjIMAojj",
+      "name": "Fred Couples",
+      "odds": "+300000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "YhOBfgAEGQ5a4WlpdbYC",
+      "name": "Vijay Singh",
+      "odds": "+375000",
+      "bookmakerCount": 4
+    },
+    {
+      "id": "ejUpU93kwtAybKEtT6Nh",
+      "name": "Jose Maria Olazábal",
+      "odds": "+400000",
+      "bookmakerCount": 4
+    }
+  ]
+}

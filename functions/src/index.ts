@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import express from "express";
 import cors from "cors";
+import { randomUUID } from "crypto";
 
 import tournamentRoutes from "./routes/tournaments";
 import poolRoutes from "./routes/pools";
@@ -8,6 +9,8 @@ import teamRoutes from "./routes/teams";
 import userRoutes from "./routes/users";
 import sessionRoutes from "./routes/session";
 import devRoutes from "./routes/dev";
+import { logRouteAck } from "./utils/logging";
+import { AuthRequest } from "./middleware/auth";
 
 const app = express();
 
@@ -16,6 +19,17 @@ const app = express();
 // the Next rewrite makes calls same-origin and CORS is a no-op.
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use((req: AuthRequest, res, next) => {
+  const headerValue = req.header("x-request-id")?.trim();
+  const requestId =
+    headerValue && headerValue.length > 0
+      ? headerValue.slice(0, 128)
+      : randomUUID();
+
+  req.requestId = requestId;
+  res.setHeader("X-Request-Id", requestId);
+  next();
+});
 
 const router = express.Router();
 
@@ -34,7 +48,8 @@ if (process.env.FUNCTIONS_EMULATOR === "true") {
 }
 
 // Health check
-router.get("/health", (_req, res) => {
+router.get("/health", (req, res) => {
+  logRouteAck("GET /health", req);
   res.json({ status: "ok" });
 });
 

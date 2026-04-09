@@ -27,3 +27,5 @@ emulator-data
 
 # Environment files
 .env*
+!.env.example
+!.env.*.template

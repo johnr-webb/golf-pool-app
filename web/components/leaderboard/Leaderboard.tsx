@@ -4,13 +4,21 @@ import { useQuery } from "@tanstack/react-query";
 import { getLeaderboard } from "@/lib/api/pools";
 import { LeaderboardUpcoming } from "./LeaderboardUpcoming";
 import { LeaderboardActive } from "./LeaderboardActive";
+import { MastersLeaderboard } from "@/components/masters/MastersLeaderboard";
 import { ErrorAlert } from "@/components/common/ErrorAlert";
 import { LoadingCard } from "@/components/common/LoadingCard";
+import type { MastersLeaderboardResponse } from "@/lib/masters/types";
+
+function isMastersResponse(data: unknown): data is MastersLeaderboardResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "mastersYear" in data &&
+    typeof (data as Record<string, unknown>).mastersYear === "string"
+  );
+}
 
 export function Leaderboard({ poolId }: { poolId: string }) {
-  // Hydrated on first render by the server component at /pools/[poolId],
-  // then background-polled every 30s so live tournament scores update
-  // without flickering the UI.
   const { data, error, isLoading } = useQuery({
     queryKey: ["pools", poolId, "leaderboard"],
     queryFn: () => getLeaderboard(poolId),
@@ -29,6 +37,11 @@ export function Leaderboard({ poolId }: { poolId: string }) {
   }
   if (!data && isLoading) return <LoadingCard />;
   if (!data) return null;
+
+  // Masters-specific rendering
+  if (isMastersResponse(data)) {
+    return <MastersLeaderboard data={data} />;
+  }
 
   if (data.status === "upcoming") {
     return <LeaderboardUpcoming teams={data.teams} />;

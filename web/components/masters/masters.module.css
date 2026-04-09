@@ -1,0 +1,439 @@
+/* Masters dark theme — Augusta green and gold */
+
+.page {
+  background: #141414;
+  min-height: 100vh;
+}
+
+/* Hero banner */
+.hero {
+  background: linear-gradient(135deg, #0a3d0a 0%, #14501a 50%, #0a3d0a 100%);
+  padding: 16px 20px 14px;
+  color: #fff;
+  text-align: center;
+}
+
+.heroSubtitle {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  color: #d4af37;
+  margin-bottom: 4px;
+}
+
+.heroTitle {
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.heroRound {
+  font-size: 11px;
+  color: #8fbc8f;
+}
+
+.heroStats {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  font-size: 11px;
+}
+
+.heroStatLabel {
+  color: #d4af37;
+  font-size: 9px;
+  text-transform: uppercase;
+  display: block;
+}
+
+/* Ticker */
+.ticker {
+  background: #0d2e0d;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding: 8px 0;
+  overflow: hidden;
+}
+
+.tickerScroll {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  padding: 0 12px;
+  gap: 6px;
+  scrollbar-width: none;
+}
+
+.tickerScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.tickerBadge {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #d4af37;
+  white-space: nowrap;
+  font-weight: 700;
+  padding: 4px 8px;
+  background: rgba(212, 175, 55, 0.15);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.tickerChip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 5px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tickerPos {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.tickerFlag {
+  font-size: 13px;
+}
+
+.tickerName {
+  color: #eee;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tickerScore {
+  color: #4ade80;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tickerThru {
+  color: #555;
+  font-size: 9px;
+}
+
+/* Pool standings section */
+.standings {
+  padding: 12px;
+}
+
+.standingsHeader {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.liveBadge {
+  background: #22c55e;
+  color: #fff;
+  font-size: 8px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Team card */
+.teamCard {
+  background: #1e1e1e;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  border-left: 4px solid #555;
+}
+
+.teamCard[data-rank="1"] { border-left-color: #d4af37; }
+.teamCard[data-rank="2"] { border-left-color: #C0C0C0; }
+.teamCard[data-rank="3"] { border-left-color: #cd7f32; }
+
+.teamHeader {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.teamRank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #000;
+  flex-shrink: 0;
+}
+
+.teamName {
+  font-weight: 700;
+  font-size: 14px;
+  color: #eee;
+}
+
+.teamScore {
+  font-size: 22px;
+  font-weight: 800;
+  color: #4ade80;
+}
+
+/* Player row */
+.playerRow {
+  padding: 9px 14px;
+  border-top: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.playerFlag {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.playerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.playerName {
+  font-weight: 600;
+  font-size: 12px;
+  color: #ddd;
+}
+
+.playerHole {
+  font-size: 9px;
+  color: #666;
+}
+
+.playerHoleName {
+  color: #4ade80;
+}
+
+.playerScoreBlock {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.playerTotal {
+  font-weight: 700;
+  font-size: 13px;
+  color: #4ade80;
+}
+
+.playerToday {
+  font-size: 9px;
+  color: #666;
+}
+
+.playerChevron {
+  color: #444;
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.playerChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Expanded player header */
+.expandedHeader {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #0a3d0a, #1a5c1a);
+  color: #fff;
+  border-top: 2px solid #0a3d0a;
+}
+
+.expandedFlag {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.expandedName {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.expandedBio {
+  font-size: 10px;
+  color: #8fbc8f;
+}
+
+.championBadge {
+  color: #d4af37;
+  font-weight: 600;
+}
+
+.expandedScoreBlock {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.expandedTotal {
+  font-size: 20px;
+  font-weight: 800;
+  color: #4ade80;
+}
+
+.expandedPos {
+  font-size: 9px;
+  color: #8fbc8f;
+}
+
+/* Scorecard */
+.scorecard {
+  padding: 8px 10px;
+  background: #1a2a1a;
+}
+
+.roundTabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.roundTab {
+  font-size: 10px;
+  color: #555;
+  padding: 3px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.roundTabActive {
+  font-weight: 700;
+  color: #fff;
+  background: #0a3d0a;
+}
+
+.scorecardTable {
+  width: 100%;
+  font-size: 10px;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.scorecardTable td {
+  padding: 2px 1px;
+}
+
+.holeNumberRow td {
+  color: #555;
+  font-size: 8px;
+}
+
+.scoreRow td {
+  font-weight: 700;
+  font-size: 12px;
+  color: #ddd;
+}
+
+.outInLabel {
+  color: #888 !important;
+  font-weight: 700 !important;
+  font-size: 9px !important;
+}
+
+.outInTotal {
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  color: #eee !important;
+}
+
+/* Score cells */
+.cellBirdie {
+  background: #22c55e;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cellEagle {
+  background: #d4af37;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+}
+
+.cellBogey {
+  background: #dc2626;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cellDoubleBogey {
+  background: #991b1b;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cellUnplayed {
+  color: #333;
+}
+
+.legend {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  font-size: 8px;
+  color: #666;
+  justify-content: center;
+}
+
+.legendDot {
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+}
+
+/* Non-counting player styling */
+.nonCounting {
+  opacity: 0.5;
+}

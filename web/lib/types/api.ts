@@ -1,3 +1,5 @@
+import type { MastersLeaderboardResponse } from "@/lib/masters/types";
+
 // Frontend wire types. Kept in sync manually with:
 //   - functions/src/types/index.ts (Firestore shapes with Timestamp)
 //   - docs/openapi.yaml (HTTP surface, authoritative)
@@ -106,7 +108,8 @@ export type LeaderboardResponse =
   | {
       status: "active" | "completed";
       leaderboard: LeaderboardEntry[];
-    };
+    }
+  | MastersLeaderboardResponse;
 
 // Inputs
 export interface CreatePoolInput {

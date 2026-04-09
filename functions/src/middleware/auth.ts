@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import * as logger from "firebase-functions/logger";
 import { auth, db } from "../config/firebase";
 
 export interface AuthRequest extends Request {
@@ -7,58 +8,34 @@ export interface AuthRequest extends Request {
   admin?: boolean;
 }
 
-const SESSION_COOKIE_NAME = "__session";
-
 /**
- * Extract and verify a caller identity from either:
- *   1. `Authorization: Bearer <idToken>` — client-side API calls that already
- *      have a fresh Firebase ID token in memory.
- *   2. `Cookie: __session=<sessionCookie>` — Next.js server components and the
- *      Next middleware route guard, which only see HttpOnly cookies.
- *
- * Returns the decoded token on success, or null if neither was present /
- * valid. Callers decide whether to 401.
+ * Verify the `Authorization: Bearer <idToken>` header via Firebase Admin.
+ * Returns the decoded identity on success, or null if missing / invalid.
  */
 async function resolveIdentity(
   req: Request,
 ): Promise<{ uid: string; email?: string; name?: string } | null> {
   const header = req.headers.authorization;
-  if (header && header.startsWith("Bearer ")) {
-    try {
-      const token = header.split("Bearer ")[1];
-      const decoded = await auth.verifyIdToken(token);
-      return { uid: decoded.uid, email: decoded.email, name: decoded.name };
-    } catch {
-      // fall through to cookie attempt
-    }
+  if (!header || !header.startsWith("Bearer ")) {
+    return null;
   }
 
-  const cookieHeader = req.headers.cookie;
-  if (cookieHeader) {
-    const match = cookieHeader.match(
-      new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`),
-    );
-    if (match) {
-      try {
-        // checkRevoked=true so signing out in one tab kills other tabs.
-        const decoded = await auth.verifySessionCookie(match[1], true);
-        return {
-          uid: decoded.uid,
-          email: decoded.email,
-          name: decoded.name as string | undefined,
-        };
-      } catch {
-        // invalid / expired / revoked
-      }
-    }
+  try {
+    const token = header.split("Bearer ")[1];
+    const decoded = await auth.verifyIdToken(token);
+    return { uid: decoded.uid, email: decoded.email, name: decoded.name };
+  } catch (err) {
+    logger.warn("auth: Bearer token verification failed", {
+      path: req.originalUrl,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
   }
-
-  return null;
 }
 
 /**
- * Verify caller identity from either a Bearer ID token or a `__session`
- * session cookie. Attaches uid and admin flag to the request.
+ * Verify caller identity from a Bearer ID token.
+ * Attaches uid and admin flag to the request.
  */
 export async function requireAuth(
   req: AuthRequest,

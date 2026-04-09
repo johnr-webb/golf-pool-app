@@ -20,7 +20,6 @@ import {
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import { getMe, updateMe } from "@/lib/api/users";
-import { createSession, deleteSession } from "@/lib/api/session";
 import type { Me } from "@/lib/types/api";
 
 interface AuthContextValue {
@@ -39,11 +38,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-async function syncServerSession(user: User): Promise<void> {
-  const idToken = await user.getIdToken();
-  await createSession(idToken);
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -67,11 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
-      try {
-        await syncServerSession(fbUser);
-      } catch {
-        /* non-fatal */
-      }
       if (loadedForUid.current === fbUser.uid) {
         setLoading(false);
         return;
@@ -93,20 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const cred = await signInWithEmailAndPassword(
-      getFirebaseAuth(),
-      email,
-      password,
-    );
-    // Mint a server-verified session cookie right away. Downstream fetches
-    // and Next middleware rely on the __session cookie for auth. If this
-    // fails we swallow — Bearer token fallback still works, just without
-    // the SSR win.
-    try {
-      await syncServerSession(cred.user);
-    } catch {
-      /* non-fatal */
-    }
+    await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
   }, []);
 
   const signUp = useCallback(
@@ -124,13 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Mirror displayName onto the Firebase Auth profile for any downstream
       // consumer (e.g. avatar initials before /users/mine resolves).
       await updateProfile(cred.user, { displayName });
-      // Mint a session cookie before calling the API so subsequent PATCH
-      // goes through on the cookie path (and SSR works on next navigation).
-      try {
-        await syncServerSession(cred.user);
-      } catch {
-        /* non-fatal — Bearer token still works */
-      }
       // Seed displayName + realName into the Firestore user doc. The auto-create
       // in requireAuth will run first (triggered by getIdToken on the PATCH),
       // then this PATCH fills in the user-supplied values.
@@ -142,14 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    // Clear the session cookie & revoke refresh tokens BEFORE calling
-    // firebase.signOut(). Ordering matters: once firebase.signOut runs, the
-    // API client has no ID token to present on the Bearer fallback path.
-    try {
-      await deleteSession();
-    } catch {
-      /* still proceed with local sign-out */
-    }
     await firebaseSignOut(getFirebaseAuth());
     loadedForUid.current = null;
     setMe(null);

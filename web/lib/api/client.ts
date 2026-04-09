@@ -64,12 +64,7 @@ export async function apiFetch<T>(
   init: RequestInit = {},
 ): Promise<T> {
   const url = `${apiBaseUrl}${path}`;
-
-  // credentials: "include" so the __session cookie rides along on every call.
-  // Bearer token is still attached in buildHeaders() as a fallback for any
-  // request that fires before POST /session has set the cookie — requireAuth
-  // on the backend accepts either credential.
-  const fetchOpts: RequestInit = { cache: "no-store", credentials: "include" };
+  const fetchOpts: RequestInit = { cache: "no-store" };
 
   // First attempt with cached token
   let headers = await buildHeaders(init, false);

@@ -300,6 +300,7 @@ router.get(
       }
     }
 
+    res.set("Cache-Control", "public, s-maxage=300");
     res.json({
       teams: teamData.map((t) => {
         const owner = userMap.get(t.userId);

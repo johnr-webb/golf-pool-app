@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../config/firebase";
 import { AuthRequest, requireAuth, requireAdmin } from "../middleware/auth";
-import { fetchScoreboard, matchPlayers } from "../services/espn";
+import { fetchScoreboard, fetchScoreboardForEvent, matchPlayers } from "../services/espn";
 import { fetchOdds, aggregateOdds } from "../services/odds";
 import { FieldValue } from "firebase-admin/firestore";
 import { logRouteAck, logRouteError, logRouteStep } from "../utils/logging";
@@ -345,7 +345,7 @@ router.post(
     }));
 
     // Fetch ESPN data
-    let competitors;
+    let scoreboard;
     try {
       logRouteStep(
         "POST /tournaments/:tournamentId/sync-espn",
@@ -356,7 +356,10 @@ router.post(
           unmappedPlayers: ourPlayers.length,
         },
       );
-      competitors = await fetchScoreboard();
+      const tournament = tournDoc.data()!;
+      scoreboard = tournament.espnEventId
+        ? await fetchScoreboardForEvent(tournament.espnEventId)
+        : await fetchScoreboard();
     } catch (error) {
       logRouteError(
         "POST /tournaments/:tournamentId/sync-espn",
@@ -369,13 +372,13 @@ router.post(
       return;
     }
 
-    if (competitors.length === 0) {
+    if (scoreboard.competitors.length === 0) {
       res.status(502).json({ error: "No competitors returned from ESPN" });
       return;
     }
 
     // Match names
-    const { matched, unmatched } = matchPlayers(ourPlayers, competitors);
+    const { matched, unmatched } = matchPlayers(ourPlayers, scoreboard.competitors);
     logRouteStep(
       "POST /tournaments/:tournamentId/sync-espn",
       req,

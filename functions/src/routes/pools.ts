@@ -8,7 +8,7 @@ import {
   applyMissedCutPenalty,
   calculateTeamScore,
 } from "../services/leaderboard";
-import { LeaderboardEntry } from "../types";
+import { EspnScoreboard, LeaderboardEntry } from "../types";
 import {
   loadOwnerNames,
   serializePlayerDetail,
@@ -244,7 +244,21 @@ router.get("/:poolId", requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
-// GET /pools/:poolId/leaderboard — Get leaderboard
+/**
+ * Map ESPN event state to our tournament status.
+ * ESPN: "pre" (not started), "in" (in progress), "post" (finished)
+ */
+function espnStateToStatus(
+  state: string,
+): "upcoming" | "active" | "completed" {
+  if (state === "in") return "active";
+  if (state === "post") return "completed";
+  return "upcoming";
+}
+
+// GET /pools/:poolId/leaderboard — Get leaderboard.
+// Status is derived from the ESPN event state, not from the Firestore doc.
+// Firestore is updated as a side effect so team-edit lockout stays in sync.
 router.get(
   "/:poolId/leaderboard",
   requireAuth,
@@ -270,6 +284,49 @@ router.get(
     }
     const tournament = tournDoc.data()!;
 
+    // Always fetch ESPN — it's the source of truth for status + scores
+    let scoreboard: EspnScoreboard;
+    try {
+      logRouteStep(
+        "GET /pools/:poolId/leaderboard",
+        req,
+        "fetching ESPN scoreboard",
+        {
+          poolId,
+          tournamentId: pool.tournamentId,
+          espnEventId: tournament.espnEventId ?? null,
+        },
+      );
+      scoreboard = tournament.espnEventId
+        ? await fetchScoreboardForEvent(tournament.espnEventId)
+        : await fetchScoreboard();
+    } catch (error) {
+      logRouteError(
+        "GET /pools/:poolId/leaderboard",
+        req,
+        "failed to fetch ESPN scoreboard",
+        error,
+        {
+          poolId,
+          tournamentId: pool.tournamentId,
+          espnEventId: tournament.espnEventId ?? null,
+        },
+      );
+      res.status(502).json({ error: "Failed to fetch ESPN scores" });
+      return;
+    }
+
+    const status = espnStateToStatus(scoreboard.eventStatus.state);
+
+    // Side-effect: keep Firestore status in sync so team-edit lockout works
+    if (tournament.status !== status) {
+      tournDoc.ref
+        .update({ status })
+        .catch((err: unknown) =>
+          console.warn("[leaderboard] failed to sync tournament status:", err),
+        );
+    }
+
     // Get all teams in pool
     const teamsSnap = await db
       .collection("teams")
@@ -277,16 +334,16 @@ router.get(
       .get();
 
     if (teamsSnap.empty) {
-      if (tournament.status === "upcoming") {
-        res.json({ status: "upcoming", teams: [] });
-        return;
-      }
-      res.json({ status: tournament.status, leaderboard: [] });
+      res.json(
+        status === "upcoming"
+          ? { status: "upcoming", teams: [] }
+          : { status, leaderboard: [] },
+      );
       return;
     }
 
     // If tournament hasn't started, return teams without scores
-    if (tournament.status === "upcoming") {
+    if (status === "upcoming") {
       const ownerNameByUserId = await loadOwnerNames(
         teamsSnap.docs.map((teamDoc) => teamDoc.data().userId as string),
       );
@@ -318,37 +375,8 @@ router.get(
       return;
     }
 
-    // Tournament is active or completed — fetch ESPN scores
-    let competitors;
-    try {
-      logRouteStep(
-        "GET /pools/:poolId/leaderboard",
-        req,
-        "fetching ESPN scores",
-        {
-          poolId,
-          tournamentId: pool.tournamentId,
-          espnEventId: tournament.espnEventId ?? null,
-        },
-      );
-      competitors = tournament.espnEventId
-        ? await fetchScoreboardForEvent(tournament.espnEventId)
-        : await fetchScoreboard();
-    } catch (error) {
-      logRouteError(
-        "GET /pools/:poolId/leaderboard",
-        req,
-        "failed to fetch ESPN scores",
-        error,
-        {
-          poolId,
-          tournamentId: pool.tournamentId,
-          espnEventId: tournament.espnEventId ?? null,
-        },
-      );
-      res.status(502).json({ error: "Failed to fetch ESPN scores" });
-      return;
-    }
+    // Tournament is active or completed — calculate scores
+    const { competitors } = scoreboard;
 
     // Build score map: espnId -> { score, missedCut }
     const scoreMap = new Map<string, { score: number; missedCut: boolean }>();
@@ -418,11 +446,12 @@ router.get(
       {
         poolId,
         teamCount: leaderboard.length,
-        tournamentStatus: tournament.status,
+        espnState: scoreboard.eventStatus.state,
+        status,
       },
     );
 
-    res.json({ status: tournament.status, leaderboard });
+    res.json({ status, leaderboard });
   },
 );
 

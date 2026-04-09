@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import * as fs from "fs";
 import * as path from "path";
-import { EspnCompetitor } from "../types";
+import { EspnCompetitor, EspnScoreboard, EspnEventStatus } from "../types";
 
 const SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard";
@@ -12,16 +12,53 @@ const SCOREBOARD_URL =
 // emulator via `firebase emulators:start`.
 const DEFAULT_FIXTURE_PATH = "../plan/sample_data.json";
 
+const DEFAULT_EVENT_STATUS: EspnEventStatus = {
+  state: "pre",
+  completed: false,
+  detail: "",
+  shortDetail: "",
+};
+
+/** Extract the full scoreboard from a parsed ESPN JSON response. */
+function parseScoreboardData(data: Record<string, unknown>): EspnScoreboard {
+  const events = data.events as Array<Record<string, unknown>> | undefined;
+  if (!events || events.length === 0) {
+    return { competitors: [], eventStatus: DEFAULT_EVENT_STATUS, startDate: null, endDate: null };
+  }
+  const event = events[0];
+  const competitions = (event.competitions as Array<Record<string, unknown>>) || [];
+  const competitors = competitions.length > 0
+    ? (competitions[0].competitors as EspnCompetitor[]) || []
+    : [];
+
+  // Event-level status lives at events[0].status.type
+  const statusObj = event.status as Record<string, unknown> | undefined;
+  const statusType = statusObj?.type as Record<string, unknown> | undefined;
+  const eventStatus: EspnEventStatus = statusType
+    ? {
+        state: (statusType.state as EspnEventStatus["state"]) ?? "pre",
+        completed: (statusType.completed as boolean) ?? false,
+        detail: (statusType.detail as string) ?? "",
+        shortDetail: (statusType.shortDetail as string) ?? "",
+      }
+    : DEFAULT_EVENT_STATUS;
+
+  return {
+    competitors,
+    eventStatus,
+    startDate: (event.startDate as string) ?? (event.date as string) ?? null,
+    endDate: (event.endDate as string) ?? null,
+  };
+}
+
 /**
  * When running under the functions emulator, read scoreboard data from the
- * local sample_data.json fixture instead of calling the live ESPN API. This
- * lets the dev environment render a real, populated leaderboard without
- * network access or flaky upstream responses.
+ * local sample_data.json fixture instead of calling the live ESPN API.
  *
  * Gated on FUNCTIONS_EMULATOR=true so production deploys always hit the real
  * ESPN API, regardless of what the fallback path resolves to.
  */
-function loadFixtureCompetitors(): EspnCompetitor[] | null {
+function loadFixtureScoreboard(): EspnScoreboard | null {
   if (process.env.FUNCTIONS_EMULATOR !== "true") return null;
   const fixturePath = process.env.ESPN_FIXTURE_PATH ?? DEFAULT_FIXTURE_PATH;
 
@@ -31,15 +68,9 @@ function loadFixtureCompetitors(): EspnCompetitor[] | null {
 
   try {
     const raw = fs.readFileSync(resolved, "utf8");
-    // sample_data.json has a few trailing commas; strip them before parsing.
     const cleaned = raw.replace(/,(\s*[}\]])/g, "$1");
     const data = JSON.parse(cleaned) as Record<string, unknown>;
-    const events = data.events as Array<Record<string, unknown>> | undefined;
-    if (!events || events.length === 0) return [];
-    const competitions =
-      (events[0].competitions as Array<Record<string, unknown>>) || [];
-    if (competitions.length === 0) return [];
-    return (competitions[0].competitors as EspnCompetitor[]) || [];
+    return parseScoreboardData(data);
   } catch (err) {
     console.warn(
       `[espn] ESPN_FIXTURE_PATH set but could not load ${resolved}:`,
@@ -49,8 +80,8 @@ function loadFixtureCompetitors(): EspnCompetitor[] | null {
   }
 }
 
-export async function fetchScoreboard(): Promise<EspnCompetitor[]> {
-  const fixture = loadFixtureCompetitors();
+export async function fetchScoreboard(): Promise<EspnScoreboard> {
+  const fixture = loadFixtureScoreboard();
   if (fixture !== null) return fixture;
 
   const res = await fetch(SCOREBOARD_URL);
@@ -58,21 +89,13 @@ export async function fetchScoreboard(): Promise<EspnCompetitor[]> {
     throw new Error(`ESPN API returned ${res.status}`);
   }
   const data = await res.json() as Record<string, unknown>;
-  const events = data.events as Array<Record<string, unknown>> | undefined;
-  if (!events || events.length === 0) {
-    return [];
-  }
-  const competitions = (events[0].competitions as Array<Record<string, unknown>>) || [];
-  if (competitions.length === 0) {
-    return [];
-  }
-  return (competitions[0].competitors as EspnCompetitor[]) || [];
+  return parseScoreboardData(data);
 }
 
 export async function fetchScoreboardForEvent(
   espnEventId: string
-): Promise<EspnCompetitor[]> {
-  const fixture = loadFixtureCompetitors();
+): Promise<EspnScoreboard> {
+  const fixture = loadFixtureScoreboard();
   if (fixture !== null) return fixture;
 
   const res = await fetch(`${SCOREBOARD_URL}?event=${espnEventId}`);
@@ -80,15 +103,7 @@ export async function fetchScoreboardForEvent(
     throw new Error(`ESPN API returned ${res.status}`);
   }
   const data = await res.json() as Record<string, unknown>;
-  const events = data.events as Array<Record<string, unknown>> | undefined;
-  if (!events || events.length === 0) {
-    return [];
-  }
-  const competitions = (events[0].competitions as Array<Record<string, unknown>>) || [];
-  if (competitions.length === 0) {
-    return [];
-  }
-  return (competitions[0].competitors as EspnCompetitor[]) || [];
+  return parseScoreboardData(data);
 }
 
 /**

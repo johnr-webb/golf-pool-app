@@ -80,6 +80,23 @@ export interface EspnCompetitor {
   };
 }
 
+/** Event-level status from ESPN scoreboard. */
+export interface EspnEventStatus {
+  /** "pre" = not started, "in" = in progress, "post" = finished */
+  state: "pre" | "in" | "post";
+  completed: boolean;
+  detail: string;
+  shortDetail: string;
+}
+
+export interface EspnScoreboard {
+  competitors: EspnCompetitor[];
+  eventStatus: EspnEventStatus;
+  /** ESPN's start/end dates for the event */
+  startDate: string | null;
+  endDate: string | null;
+}
+
 export interface LeaderboardEntry {
   teamId: string;
   teamName: string;

@@ -32,7 +32,14 @@ export function MastersTeamCard({ entry, rank, holes, roundPars, currentRound }:
           <div className={styles.teamRank} style={{ background: rankColor }}>
             {rank}
           </div>
-          <span className={styles.teamName}>{entry.teamName}</span>
+          <div>
+            <span className={styles.teamName}>{entry.teamName}</span>
+            {entry.realName && (
+              <div style={{ fontSize: 10, color: "#666", marginTop: 1 }}>
+                {entry.realName}
+              </div>
+            )}
+          </div>
         </div>
         <div className={styles.teamScore}>{formatScore(entry.totalScore)}</div>
       </div>

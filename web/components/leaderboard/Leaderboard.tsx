@@ -4,21 +4,34 @@ import { useQuery } from "@tanstack/react-query";
 import { getLeaderboard } from "@/lib/api/pools";
 import { LeaderboardUpcoming } from "./LeaderboardUpcoming";
 import { LeaderboardActive } from "./LeaderboardActive";
-import { MastersLeaderboard } from "@/components/masters/MastersLeaderboard";
+import { MastersLeaderboardContainer } from "@/components/masters/MastersLeaderboardContainer";
 import { ErrorAlert } from "@/components/common/ErrorAlert";
 import { LoadingCard } from "@/components/common/LoadingCard";
-import type { MastersLeaderboardResponse } from "@/lib/masters/types";
+import type { ScoringRule } from "@/lib/types/api";
 
-function isMastersResponse(data: unknown): data is MastersLeaderboardResponse {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "mastersYear" in data &&
-    typeof (data as Record<string, unknown>).mastersYear === "string"
-  );
+interface Props {
+  poolId: string;
+  mastersYear?: string | null;
+  scoringRule?: ScoringRule;
 }
 
-export function Leaderboard({ poolId }: { poolId: string }) {
+export function Leaderboard({ poolId, mastersYear, scoringRule }: Props) {
+  // Masters: entirely separate data flow (client-side scoring via masters.com proxy)
+  if (mastersYear && scoringRule) {
+    return (
+      <MastersLeaderboardContainer
+        poolId={poolId}
+        mastersYear={mastersYear}
+        scoringRule={scoringRule}
+      />
+    );
+  }
+
+  return <EspnLeaderboard poolId={poolId} />;
+}
+
+/** Standard ESPN-backed leaderboard (non-Masters tournaments) */
+function EspnLeaderboard({ poolId }: { poolId: string }) {
   const { data, error, isLoading } = useQuery({
     queryKey: ["pools", poolId, "leaderboard"],
     queryFn: () => getLeaderboard(poolId),
@@ -37,11 +50,6 @@ export function Leaderboard({ poolId }: { poolId: string }) {
   }
   if (!data && isLoading) return <LoadingCard />;
   if (!data) return null;
-
-  // Masters-specific rendering
-  if (isMastersResponse(data)) {
-    return <MastersLeaderboard data={data} />;
-  }
 
   if (data.status === "upcoming") {
     return <LeaderboardUpcoming teams={data.teams} />;

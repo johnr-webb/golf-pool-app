@@ -1,5 +1,3 @@
-import type { MastersLeaderboardResponse } from "@/lib/masters/types";
-
 // Frontend wire types. Kept in sync manually with:
 //   - functions/src/types/index.ts (Firestore shapes with Timestamp)
 //   - docs/openapi.yaml (HTTP surface, authoritative)
@@ -64,6 +62,24 @@ export interface PoolSummary {
 export interface PoolDetail extends PoolSummary {
   tiers: TierConfig[];
   scoringRule: ScoringRule;
+  mastersYear?: string | null;
+}
+
+// Masters team-picks (client-side scoring)
+export interface TeamPickPlayer {
+  id: string;
+  name: string;
+}
+export interface TeamPick {
+  teamId: string;
+  teamName: string;
+  userId: string;
+  displayName: string;
+  realName: string;
+  picks: TeamPickPlayer[];
+}
+export interface TeamPicksResponse {
+  teams: TeamPick[];
 }
 
 export interface TeamOwner {
@@ -108,8 +124,7 @@ export type LeaderboardResponse =
   | {
       status: "active" | "completed";
       leaderboard: LeaderboardEntry[];
-    }
-  | MastersLeaderboardResponse;
+    };
 
 // Inputs
 export interface CreatePoolInput {

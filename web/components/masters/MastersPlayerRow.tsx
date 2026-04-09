@@ -18,10 +18,13 @@ export function MastersPlayerRow({ player, holes, roundPars, currentRound }: Pro
   const [expanded, setExpanded] = useState(false);
 
   const flag = player.bio ? countryCodeToFlag(player.bio.countryCode) : "";
+  const thruNum = player.thru ? parseInt(player.thru, 10) : NaN;
+  const hasStarted = !isNaN(thruNum) && thruNum > 0;
+  const isFinished = player.thru === "F" || thruNum >= 18;
+  // "Thru 8" means 8 holes done, currently on hole 9
+  const onHole = hasStarted && !isFinished ? thruNum + 1 : null;
   const currentHoleInfo =
-    player.currentHole && player.currentHole <= holes.length
-      ? holes[player.currentHole - 1]
-      : null;
+    onHole && onHole <= holes.length ? holes[onHole - 1] : null;
 
   const scoreColor = (player.score ?? 0) < 0 ? "#4ade80" : (player.score ?? 0) > 0 ? "#dc2626" : "#ddd";
 
@@ -82,9 +85,9 @@ export function MastersPlayerRow({ player, holes, roundPars, currentRound }: Pro
                 {currentHoleInfo.name}, Par {currentHoleInfo.par}
               </span>
             </>
-          ) : player.thru === "F" ? (
+          ) : isFinished ? (
             "Finished"
-          ) : player.thru ? (
+          ) : hasStarted ? (
             `Thru ${player.thru}`
           ) : (
             ""

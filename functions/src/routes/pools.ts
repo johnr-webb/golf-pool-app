@@ -238,12 +238,86 @@ router.get("/:poolId", requireAuth, async (req: AuthRequest, res) => {
     tournamentId: pool.tournamentId,
     tournamentName: tournament?.name ?? null,
     tournamentStatus: tournament?.status ?? null,
+    mastersYear: tournament?.mastersYear ?? null,
     createdBy: pool.createdBy,
     tiers: pool.tiers,
     scoringRule: pool.scoringRule,
     myTeamId,
   });
 });
+
+// GET /pools/:poolId/team-picks — lightweight team+player data for client-side scoring (Masters).
+router.get(
+  "/:poolId/team-picks",
+  requireAuth,
+  async (req: AuthRequest, res) => {
+    const { poolId } = req.params;
+    const poolDoc = await db.collection("pools").doc(poolId).get();
+    if (!poolDoc.exists) {
+      res.status(404).json({ error: "Pool not found" });
+      return;
+    }
+
+    const teamsSnap = await db
+      .collection("teams")
+      .where("poolId", "==", poolId)
+      .get();
+
+    const allPickIds = new Set<string>();
+    const teamData = teamsSnap.docs.map((doc) => {
+      const data = doc.data();
+      const picks: string[] = data.picks || [];
+      picks.forEach((id: string) => allPickIds.add(id));
+      return {
+        teamId: doc.id,
+        teamName: data.name as string,
+        userId: data.userId as string,
+        picks,
+      };
+    });
+
+    const playerSnaps = await Promise.all(
+      [...allPickIds].map((id) => db.collection("players").doc(id).get()),
+    );
+    const playerMap = new Map<string, string>();
+    for (const snap of playerSnaps) {
+      if (snap.exists) playerMap.set(snap.id, snap.data()!.name);
+    }
+
+    // Load full user profiles for display name + real name
+    const uniqueUserIds = [...new Set(teamData.map((t) => t.userId))];
+    const userDocs = await Promise.all(
+      uniqueUserIds.map((uid) => db.collection("users").doc(uid).get()),
+    );
+    const userMap = new Map<string, { displayName: string; realName: string }>();
+    for (const doc of userDocs) {
+      if (doc.exists) {
+        const u = doc.data()!;
+        userMap.set(doc.id, {
+          displayName: (u.displayName as string) || "",
+          realName: (u.realName as string) || "",
+        });
+      }
+    }
+
+    res.json({
+      teams: teamData.map((t) => {
+        const owner = userMap.get(t.userId);
+        return {
+          teamId: t.teamId,
+          teamName: t.teamName,
+          userId: t.userId,
+          displayName: owner?.displayName ?? "",
+          realName: owner?.realName ?? "",
+          picks: t.picks.map((id) => ({
+            id,
+            name: playerMap.get(id) || "Unknown",
+          })),
+        };
+      }),
+    });
+  },
+);
 
 /**
  * Map ESPN event state to our tournament status.

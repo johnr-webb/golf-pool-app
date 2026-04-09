@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
-    "firebase@firebase": true
+    "firebase@firebase": true,
+    "superpowers@claude-plugins-official": true
   }
 }

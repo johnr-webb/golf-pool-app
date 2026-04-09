@@ -26,8 +26,8 @@ export function MastersScorecard({ rounds, roundPars, currentRound }: Props) {
   const frontPars = pars.slice(0, 9);
   const backPars = pars.slice(9, 18);
 
-  const frontTotal = front.reduce((s, v) => s + (v ?? 0), 0);
-  const backTotal = back.reduce((s, v) => s + (v ?? 0), 0);
+  const frontTotal = front.reduce<number>((s, v) => s + (v ?? 0), 0);
+  const backTotal = back.reduce<number>((s, v) => s + (v ?? 0), 0);
   const frontPlayed = front.some((v) => v !== null);
   const backPlayed = back.some((v) => v !== null);
 

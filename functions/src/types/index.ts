@@ -18,6 +18,7 @@ export interface Tournament {
   endDate: Timestamp;
   cutLine: number | null;
   status: "upcoming" | "active" | "completed";
+  mastersYear?: string;
   createdAt: Timestamp;
 }
 

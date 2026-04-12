@@ -107,16 +107,34 @@ export async function fetchScoreboardForEvent(
 }
 
 /**
+ * Characters that survive NFD decomposition — these are standalone Unicode
+ * code points (not base + combining mark), so the accent-stripping regex
+ * won't touch them. Map them to their ASCII equivalents explicitly.
+ */
+const SPECIAL_CHARS: Record<string, string> = {
+  "\u00f8": "o", // ø
+  "\u00d8": "O", // Ø
+  "\u00e6": "ae", // æ
+  "\u00c6": "AE", // Æ
+  "\u00f0": "d", // ð
+  "\u00d0": "D", // Ð
+  "\u00df": "ss", // ß
+  "\u0111": "d", // đ
+  "\u0110": "D", // Đ
+  "\u0142": "l", // ł
+  "\u0141": "L", // Ł
+};
+
+/**
  * Normalize a name for fuzzy matching:
  * lowercase, strip accents, collapse whitespace
  */
 export function normalizeName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  let s = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const [from, to] of Object.entries(SPECIAL_CHARS)) {
+    s = s.split(from).join(to);
+  }
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 /**

@@ -14,7 +14,6 @@ import {
   serializePlayerDetail,
 } from "../utils/teamSerializers";
 import { logRouteAck, logRouteError, logRouteStep } from "../utils/logging";
-import { buildMastersLeaderboard } from "../services/masters";
 
 const router = Router();
 
@@ -360,76 +359,7 @@ router.get(
     }
     const tournament = tournDoc.data()!;
 
-    // Masters-specific path: use masters.com data instead of ESPN
-    if (tournament.mastersYear) {
-      const teamsSnap = await db
-        .collection("teams")
-        .where("poolId", "==", poolId)
-        .get();
-
-      if (teamsSnap.empty) {
-        res.json({ status: "active", mastersYear: tournament.mastersYear, leaderboard: [], leaders: [], holes: [], roundPars: [], currentRound: 1 });
-        return;
-      }
-
-      // Load all picked players
-      const allPickIds = new Set<string>();
-      const teamData = teamsSnap.docs.map((doc) => {
-        const data = doc.data();
-        const picks: string[] = data.picks || [];
-        picks.forEach((id: string) => allPickIds.add(id));
-        return {
-          teamId: doc.id,
-          teamName: data.name as string,
-          userId: data.userId as string,
-          picks,
-        };
-      });
-
-      const playerDocSnaps = await Promise.all(
-        [...allPickIds].map((id) => db.collection("players").doc(id).get()),
-      );
-      const playerDocs = new Map<string, { name: string; id: string }>();
-      for (const snap of playerDocSnaps) {
-        if (snap.exists) {
-          playerDocs.set(snap.id, { name: snap.data()!.name, id: snap.id });
-        }
-      }
-
-      try {
-        const mastersResponse = await buildMastersLeaderboard({
-          mastersYear: tournament.mastersYear,
-          teams: teamData,
-          playerDocs,
-          scoringRule: pool.scoringRule,
-          requestUid: req.uid!,
-        });
-
-        // Side-effect: sync tournament status
-        const mastersStatus = mastersResponse.status;
-        if (tournament.status !== mastersStatus) {
-          tournDoc.ref
-            .update({ status: mastersStatus })
-            .catch((err: unknown) =>
-              console.warn("[leaderboard] failed to sync tournament status:", err),
-            );
-        }
-
-        res.json(mastersResponse);
-        return;
-      } catch (error) {
-        logRouteError(
-          "GET /pools/:poolId/leaderboard",
-          req,
-          "Masters data fetch failed, falling back to ESPN",
-          error,
-          { poolId, mastersYear: tournament.mastersYear },
-        );
-        // Fall through to ESPN path
-      }
-    }
-
-    // Always fetch ESPN — it's the source of truth for status + scores
+    // Fetch ESPN — it's the source of truth for status + scores
     let scoreboard: EspnScoreboard;
     try {
       logRouteStep(

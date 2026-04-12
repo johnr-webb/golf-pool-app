@@ -17,13 +17,30 @@ import type {
 
 // --- Name matching ---
 
+/**
+ * Characters that survive NFD decomposition — standalone Unicode code points
+ * (not base + combining mark), so the accent-stripping regex won't touch them.
+ */
+const SPECIAL_CHARS: Record<string, string> = {
+  "\u00f8": "o", // ø
+  "\u00d8": "O", // Ø
+  "\u00e6": "ae", // æ
+  "\u00c6": "AE", // Æ
+  "\u00f0": "d", // ð
+  "\u00d0": "D", // Ð
+  "\u00df": "ss", // ß
+  "\u0111": "d", // đ
+  "\u0110": "D", // Đ
+  "\u0142": "l", // ł
+  "\u0141": "L", // Ł
+};
+
 function normalizeName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  let s = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const [from, to] of Object.entries(SPECIAL_CHARS)) {
+    s = s.split(from).join(to);
+  }
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function matchMastersPlayer(
@@ -35,20 +52,51 @@ function matchMastersPlayer(
   bioPlayer: MastersRawPlayer | null;
 } {
   const norm = normalizeName(playerName);
+  const normParts = norm.split(" ");
+  const ourFirst = normParts[0];
+  const ourLast = normParts[normParts.length - 1];
 
-  const scorePlayer =
-    scorePlayers.find((p) => normalizeName(p.full_name) === norm) ??
-    scorePlayers.find(
-      (p) => normalizeName(p.last_name) === norm.split(" ").pop(),
-    ) ??
-    null;
+  // Score player: full name → first+last components → unique last name
+  let scorePlayer =
+    scorePlayers.find((p) => normalizeName(p.full_name) === norm) ?? null;
 
-  const bioPlayer =
-    mastersPlayers.find((p) => normalizeName(p.name) === norm) ??
-    mastersPlayers.find(
-      (p) => normalizeName(p.last_name) === norm.split(" ").pop(),
-    ) ??
-    null;
+  if (!scorePlayer) {
+    scorePlayer = scorePlayers.find(
+      (p) =>
+        normalizeName(p.first_name) === ourFirst &&
+        normalizeName(p.last_name) === ourLast,
+    ) ?? null;
+  }
+
+  if (!scorePlayer) {
+    const lastNameMatches = scorePlayers.filter(
+      (p) => normalizeName(p.last_name) === ourLast,
+    );
+    if (lastNameMatches.length === 1) {
+      scorePlayer = lastNameMatches[0];
+    }
+  }
+
+  // Bio player: same cascade
+  let bioPlayer =
+    mastersPlayers.find((p) => normalizeName(p.name) === norm) ?? null;
+
+  if (!bioPlayer) {
+    bioPlayer = mastersPlayers.find(
+      (p) =>
+        normalizeName(p.first_name) === ourFirst &&
+        normalizeName(p.last_name) === ourLast,
+    ) ?? null;
+  }
+
+  if (!bioPlayer) {
+    const lastNameMatches = mastersPlayers.filter(
+      (p) => normalizeName(p.last_name) === ourLast,
+    );
+    if (lastNameMatches.length === 1) {
+      bioPlayer = lastNameMatches[0];
+    }
+  }
 
   return { scorePlayer, bioPlayer };
 }

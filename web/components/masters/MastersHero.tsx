@@ -28,7 +28,18 @@ export function MastersHero({ currentRound, status, myTeamRank, myTeamScore, fie
             <span style={{ fontWeight: 700 }}>
               {myTeamRank === 1 ? "1st" : myTeamRank === 2 ? "2nd" : myTeamRank === 3 ? "3rd" : `${myTeamRank}th`}
             </span>{" "}
-            <span style={{ color: "#4ade80" }}>({formatScore(myTeamScore)})</span>
+            <span
+              style={{
+                color:
+                  (myTeamScore ?? 0) < 0
+                    ? "#4ade80"
+                    : (myTeamScore ?? 0) > 0
+                      ? "#dc2626"
+                      : "#fff",
+              }}
+            >
+              ({formatScore(myTeamScore)})
+            </span>
           </div>
         )}
         <div style={{ borderLeft: "1px solid rgba(255,255,255,0.15)", paddingLeft: 20 }}>

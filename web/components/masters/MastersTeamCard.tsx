@@ -41,7 +41,19 @@ export function MastersTeamCard({ entry, rank, holes, roundPars, currentRound }:
             )}
           </div>
         </div>
-        <div className={styles.teamScore}>{formatScore(entry.totalScore)}</div>
+        <div
+          className={styles.teamScore}
+          style={{
+            color:
+              (entry.totalScore ?? 0) < 0
+                ? "#4ade80"
+                : (entry.totalScore ?? 0) > 0
+                  ? "#dc2626"
+                  : "#fff",
+          }}
+        >
+          {formatScore(entry.totalScore)}
+        </div>
       </div>
       {expanded &&
         entry.playerScores.map((player) => (

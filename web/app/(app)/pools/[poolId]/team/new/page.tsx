@@ -5,6 +5,7 @@ import { getPoolDetail } from "@/lib/api/pools";
 import { listTournamentPlayers } from "@/lib/api/tournaments";
 import type { PlayerDetail, PoolDetail } from "@/lib/types/api";
 import { ApiError } from "@/lib/api/client";
+import { statusFromDates } from "@/lib/utils/format";
 import { TeamPicker } from "@/components/teams/TeamPicker";
 import { ErrorAlert } from "@/components/common/ErrorAlert";
 import { LoadingCard } from "@/components/common/LoadingCard";
@@ -48,7 +49,9 @@ export default function NewTeamPage({
   if (error) return <ErrorAlert message={error} />;
   if (!pool || !players) return <LoadingCard />;
 
-  const locked = pool.tournamentStatus !== "upcoming";
+  const locked =
+    statusFromDates(pool.tournamentStartDate, pool.tournamentEndDate) !==
+    "upcoming";
 
   return <TeamPicker pool={pool} players={players} locked={locked} />;
 }

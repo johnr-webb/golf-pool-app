@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { db } from "../config/firebase";
 import { AuthRequest, requireAuth, requireAdmin } from "../middleware/auth";
-import { fetchScoreboard, fetchScoreboardForEvent, matchPlayers } from "../services/espn";
+import {
+  fetchScoreboard,
+  fetchScoreboardForEvent,
+  matchPlayers,
+} from "../services/espn";
 import { fetchOdds, aggregateOdds } from "../services/odds";
 import { FieldValue } from "firebase-admin/firestore";
 import { logRouteAck, logRouteError, logRouteStep } from "../utils/logging";
@@ -11,38 +15,22 @@ const router = Router();
 // GET /tournaments — List tournaments (any signed-in user).
 // Optional ?status=upcoming|active|completed filter. Sorted by startDate asc.
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
-  const statusFilter = req.query.status as string | undefined;
-  logRouteAck("GET /tournaments", req, {
-    statusFilter: statusFilter ?? null,
-  });
+  logRouteAck("GET /tournaments", req, {});
 
-  const validStatuses = ["upcoming", "active", "completed"];
-
-  let query: FirebaseFirestore.Query = db.collection("tournaments");
-  if (statusFilter) {
-    if (!validStatuses.includes(statusFilter)) {
-      res.status(400).json({
-        error: `status must be one of ${validStatuses.join(", ")}`,
-      });
-      return;
-    }
-    query = query.where("status", "==", statusFilter);
-  }
-
-  const snap = await query.get();
+  const snap = await db.collection("tournaments").get();
   const tournaments = snap.docs
     .map((d) => {
       const data = d.data();
+      const start: Date | null = data.startDate?.toDate?.() ?? null;
+      const end: Date | null = data.endDate?.toDate?.() ?? null;
       return {
         id: d.id,
         name: data.name,
         espnEventId: data.espnEventId,
-        startDate: data.startDate?.toDate?.()?.toISOString() ?? null,
-        endDate: data.endDate?.toDate?.()?.toISOString() ?? null,
-        status: data.status,
+        startDate: start?.toISOString() ?? null,
+        endDate: end?.toISOString() ?? null,
       };
     })
-    // Sort in-memory to avoid requiring a composite index when filtering by status
     .sort((a, b) => (a.startDate ?? "").localeCompare(b.startDate ?? ""));
 
   res.json(tournaments);
@@ -108,7 +96,6 @@ router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
     startDate: new Date(startDate),
     endDate: new Date(endDate),
     cutLine: null,
-    status: "upcoming",
     createdAt: FieldValue.serverTimestamp(),
   });
 
@@ -378,7 +365,10 @@ router.post(
     }
 
     // Match names
-    const { matched, unmatched } = matchPlayers(ourPlayers, scoreboard.competitors);
+    const { matched, unmatched } = matchPlayers(
+      ourPlayers,
+      scoreboard.competitors,
+    );
     logRouteStep(
       "POST /tournaments/:tournamentId/sync-espn",
       req,

@@ -42,9 +42,14 @@ router.post(
       .collection("tournaments")
       .doc(pool.tournamentId)
       .get();
-    if (tournDoc.exists && tournDoc.data()!.status !== "upcoming") {
-      res.status(400).json({ error: "Tournament has already started" });
-      return;
+    if (tournDoc.exists) {
+      const t = tournDoc.data()!;
+      const now = new Date();
+      const startDate: Date | null = t.startDate?.toDate?.() ?? null;
+      if (startDate && now >= startDate) {
+        res.status(400).json({ error: "Tournament has already started" });
+        return;
+      }
     }
 
     // Check user doesn't already have a team
@@ -158,9 +163,14 @@ router.put("/:teamId", requireAuth, async (req: AuthRequest, res) => {
     .collection("tournaments")
     .doc(pool.tournamentId)
     .get();
-  if (tournDoc.exists && tournDoc.data()!.status !== "upcoming") {
-    res.status(400).json({ error: "Tournament has already started" });
-    return;
+  if (tournDoc.exists) {
+    const t = tournDoc.data()!;
+    const now = new Date();
+    const startDate: Date | null = t.startDate?.toDate?.() ?? null;
+    if (startDate && now >= startDate) {
+      res.status(400).json({ error: "Tournament has already started" });
+      return;
+    }
   }
 
   const updates: Record<string, unknown> = {

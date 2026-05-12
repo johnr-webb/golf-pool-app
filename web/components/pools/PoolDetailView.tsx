@@ -9,6 +9,7 @@ import { Leaderboard } from "@/components/leaderboard/Leaderboard";
 import { TournamentStatusBadge } from "@/components/leaderboard/TournamentStatusBadge";
 import { ErrorAlert } from "@/components/common/ErrorAlert";
 import { LoadingCard } from "@/components/common/LoadingCard";
+import { statusFromDates } from "@/lib/utils/format";
 
 /**
  * Client wrapper for the pool detail page. Reads from the TanStack Query
@@ -17,7 +18,11 @@ import { LoadingCard } from "@/components/common/LoadingCard";
  * header when the user navigates back from the team editor.
  */
 export function PoolDetailView({ poolId }: { poolId: string }) {
-  const { data: pool, error, isLoading } = useQuery({
+  const {
+    data: pool,
+    error,
+    isLoading,
+  } = useQuery({
     queryKey: ["pools", poolId, "detail"],
     queryFn: () => getPoolDetail(poolId),
   });
@@ -25,9 +30,7 @@ export function PoolDetailView({ poolId }: { poolId: string }) {
   if (error) {
     return (
       <ErrorAlert
-        message={
-          error instanceof Error ? error.message : "Failed to load pool"
-        }
+        message={error instanceof Error ? error.message : "Failed to load pool"}
       />
     );
   }
@@ -46,9 +49,11 @@ export function PoolDetailView({ poolId }: { poolId: string }) {
   }
 
   const showCreateTeam =
-    pool.tournamentStatus === "upcoming" && !pool.myTeamId;
+    statusFromDates(pool.tournamentStartDate, pool.tournamentEndDate) ===
+      "upcoming" && !pool.myTeamId;
   const showEditTeam =
-    pool.tournamentStatus === "upcoming" && !!pool.myTeamId;
+    statusFromDates(pool.tournamentStartDate, pool.tournamentEndDate) ===
+      "upcoming" && !!pool.myTeamId;
 
   return (
     <Stack gap="lg">
@@ -68,7 +73,12 @@ export function PoolDetailView({ poolId }: { poolId: string }) {
             <Title order={2}>{pool.name}</Title>
             <Group gap="xs">
               <Text c="dimmed">{pool.tournamentName ?? "\u2014"}</Text>
-              <TournamentStatusBadge status={pool.tournamentStatus} />
+              <TournamentStatusBadge
+                status={statusFromDates(
+                  pool.tournamentStartDate,
+                  pool.tournamentEndDate,
+                )}
+              />
             </Group>
           </Stack>
           <Group gap="xs">

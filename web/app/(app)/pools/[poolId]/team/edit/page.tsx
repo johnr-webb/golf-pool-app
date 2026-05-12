@@ -4,12 +4,9 @@ import { use, useEffect, useState } from "react";
 import { getPoolDetail } from "@/lib/api/pools";
 import { getTeam } from "@/lib/api/teams";
 import { listTournamentPlayers } from "@/lib/api/tournaments";
-import type {
-  PlayerDetail,
-  PoolDetail,
-  TeamDetail,
-} from "@/lib/types/api";
+import type { PlayerDetail, PoolDetail, TeamDetail } from "@/lib/types/api";
 import { ApiError } from "@/lib/api/client";
+import { statusFromDates } from "@/lib/utils/format";
 import { TeamPicker } from "@/components/teams/TeamPicker";
 import { ErrorAlert } from "@/components/common/ErrorAlert";
 import { LoadingCard } from "@/components/common/LoadingCard";
@@ -64,7 +61,9 @@ export default function EditTeamPage({
   if (error) return <ErrorAlert message={error} />;
   if (!pool || !players || !team) return <LoadingCard />;
 
-  const locked = pool.tournamentStatus !== "upcoming";
+  const locked =
+    statusFromDates(pool.tournamentStartDate, pool.tournamentEndDate) !==
+    "upcoming";
 
   return (
     <TeamPicker

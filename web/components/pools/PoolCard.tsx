@@ -4,12 +4,15 @@ import Link from "next/link";
 import { Button, Card, Group, Stack, Text } from "@mantine/core";
 import type { PoolSummary } from "@/lib/types/api";
 import { TournamentStatusBadge } from "@/components/leaderboard/TournamentStatusBadge";
+import { statusFromDates } from "@/lib/utils/format";
 
 export function PoolCard({ pool }: { pool: PoolSummary }) {
-  const canCreateTeam =
-    pool.tournamentStatus === "upcoming" && !pool.myTeamId;
-  const canEditTeam =
-    pool.tournamentStatus === "upcoming" && !!pool.myTeamId;
+  const status = statusFromDates(
+    pool.tournamentStartDate,
+    pool.tournamentEndDate,
+  );
+  const canCreateTeam = status === "upcoming" && !pool.myTeamId;
+  const canEditTeam = status === "upcoming" && !!pool.myTeamId;
 
   return (
     <Card withBorder padding="md" radius="md">
@@ -18,7 +21,7 @@ export function PoolCard({ pool }: { pool: PoolSummary }) {
           <Text fw={600} size="lg" lineClamp={1}>
             {pool.name}
           </Text>
-          <TournamentStatusBadge status={pool.tournamentStatus} />
+          <TournamentStatusBadge status={status} />
         </Group>
         <Text size="sm" c="dimmed" lineClamp={1}>
           {pool.tournamentName ?? "Tournament unavailable"}

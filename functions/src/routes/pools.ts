@@ -175,12 +175,16 @@ router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
   );
   const tournamentById = new Map<
     string,
-    { name: string; status: "upcoming" | "active" | "completed" }
+    { name: string; startDate: string | null; endDate: string | null }
   >();
   tournamentDocs.forEach((t) => {
     if (t.exists) {
       const data = t.data()!;
-      tournamentById.set(t.id, { name: data.name, status: data.status });
+      tournamentById.set(t.id, {
+        name: data.name,
+        startDate: data.startDate?.toDate?.()?.toISOString() ?? null,
+        endDate: data.endDate?.toDate?.()?.toISOString() ?? null,
+      });
     }
   });
 
@@ -194,7 +198,8 @@ router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
         name: data.name,
         tournamentId: data.tournamentId,
         tournamentName: tourn?.name ?? null,
-        tournamentStatus: tourn?.status ?? null,
+        tournamentStartDate: tourn?.startDate ?? null,
+        tournamentEndDate: tourn?.endDate ?? null,
         createdBy: data.createdBy,
         myTeamId: teamIdByPool.get(p.id) ?? null,
       };
@@ -236,7 +241,9 @@ router.get("/:poolId", requireAuth, async (req: AuthRequest, res) => {
     name: pool.name,
     tournamentId: pool.tournamentId,
     tournamentName: tournament?.name ?? null,
-    tournamentStatus: tournament?.status ?? null,
+    tournamentStartDate:
+      tournament?.startDate?.toDate?.()?.toISOString() ?? null,
+    tournamentEndDate: tournament?.endDate?.toDate?.()?.toISOString() ?? null,
     mastersYear: tournament?.mastersYear ?? null,
     createdBy: pool.createdBy,
     tiers: pool.tiers,
@@ -288,7 +295,10 @@ router.get(
     const userDocs = await Promise.all(
       uniqueUserIds.map((uid) => db.collection("users").doc(uid).get()),
     );
-    const userMap = new Map<string, { displayName: string; realName: string }>();
+    const userMap = new Map<
+      string,
+      { displayName: string; realName: string }
+    >();
     for (const doc of userDocs) {
       if (doc.exists) {
         const u = doc.data()!;
@@ -319,21 +329,8 @@ router.get(
   },
 );
 
-/**
- * Map ESPN event state to our tournament status.
- * ESPN: "pre" (not started), "in" (in progress), "post" (finished)
- */
-function espnStateToStatus(
-  state: string,
-): "upcoming" | "active" | "completed" {
-  if (state === "in") return "active";
-  if (state === "post") return "completed";
-  return "upcoming";
-}
-
 // GET /pools/:poolId/leaderboard — Get leaderboard.
-// Status is derived from the ESPN event state, not from the Firestore doc.
-// Firestore is updated as a side effect so team-edit lockout stays in sync.
+// Status is derived from tournament start/end dates.
 router.get(
   "/:poolId/leaderboard",
   requireAuth,
@@ -359,47 +356,14 @@ router.get(
     }
     const tournament = tournDoc.data()!;
 
-    // Fetch ESPN — it's the source of truth for status + scores
-    let scoreboard: EspnScoreboard;
-    try {
-      logRouteStep(
-        "GET /pools/:poolId/leaderboard",
-        req,
-        "fetching ESPN scoreboard",
-        {
-          poolId,
-          tournamentId: pool.tournamentId,
-          espnEventId: tournament.espnEventId ?? null,
-        },
-      );
-      scoreboard = tournament.espnEventId
-        ? await fetchScoreboardForEvent(tournament.espnEventId)
-        : await fetchScoreboard();
-    } catch (error) {
-      logRouteError(
-        "GET /pools/:poolId/leaderboard",
-        req,
-        "failed to fetch ESPN scoreboard",
-        error,
-        {
-          poolId,
-          tournamentId: pool.tournamentId,
-          espnEventId: tournament.espnEventId ?? null,
-        },
-      );
-      res.status(502).json({ error: "Failed to fetch ESPN scores" });
-      return;
-    }
-
-    const status = espnStateToStatus(scoreboard.eventStatus.state);
-
-    // Side-effect: keep Firestore status in sync so team-edit lockout works
-    if (tournament.status !== status) {
-      tournDoc.ref
-        .update({ status })
-        .catch((err: unknown) =>
-          console.warn("[leaderboard] failed to sync tournament status:", err),
-        );
+    // Derive status from tournament dates — source of truth
+    const now = new Date();
+    const startDate: Date | null = tournament.startDate?.toDate?.() ?? null;
+    const endDate: Date | null = tournament.endDate?.toDate?.() ?? null;
+    let status: "upcoming" | "active" | "completed" = "upcoming";
+    if (startDate && endDate) {
+      if (now > endDate) status = "completed";
+      else if (now >= startDate) status = "active";
     }
 
     // Get all teams in pool
@@ -417,7 +381,7 @@ router.get(
       return;
     }
 
-    // If tournament hasn't started, return teams without scores
+    // If tournament hasn't started, return teams without scores (no ESPN call needed)
     if (status === "upcoming") {
       const ownerNameByUserId = await loadOwnerNames(
         teamsSnap.docs.map((teamDoc) => teamDoc.data().userId as string),
@@ -450,7 +414,38 @@ router.get(
       return;
     }
 
-    // Tournament is active or completed — calculate scores
+    // Tournament is active or completed — fetch ESPN scores
+    let scoreboard: EspnScoreboard;
+    try {
+      logRouteStep(
+        "GET /pools/:poolId/leaderboard",
+        req,
+        "fetching ESPN scoreboard",
+        {
+          poolId,
+          tournamentId: pool.tournamentId,
+          espnEventId: tournament.espnEventId ?? null,
+        },
+      );
+      scoreboard = tournament.espnEventId
+        ? await fetchScoreboardForEvent(tournament.espnEventId)
+        : await fetchScoreboard();
+    } catch (error) {
+      logRouteError(
+        "GET /pools/:poolId/leaderboard",
+        req,
+        "failed to fetch ESPN scoreboard",
+        error,
+        {
+          poolId,
+          tournamentId: pool.tournamentId,
+          espnEventId: tournament.espnEventId ?? null,
+        },
+      );
+      res.status(502).json({ error: "Failed to fetch ESPN scores" });
+      return;
+    }
+
     const { competitors } = scoreboard;
 
     // Build score map: espnId -> { score, missedCut }

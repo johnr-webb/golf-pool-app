@@ -39,7 +39,6 @@ export interface TournamentSummary {
   espnEventId: string | null;
   startDate: string | null;
   endDate: string | null;
-  status: TournamentStatus;
 }
 
 export interface PlayerDetail {
@@ -54,7 +53,8 @@ export interface PoolSummary {
   name: string;
   tournamentId: string;
   tournamentName: string | null;
-  tournamentStatus: TournamentStatus | null;
+  tournamentStartDate: string | null;
+  tournamentEndDate: string | null;
   createdBy: string;
   myTeamId: string | null;
 }

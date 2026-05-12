@@ -21,6 +21,7 @@ import { listTournaments } from "@/lib/api/tournaments";
 import { createPool } from "@/lib/api/pools";
 import type { TierConfig, TournamentSummary } from "@/lib/types/api";
 import { ApiError } from "@/lib/api/client";
+import { statusFromDates } from "@/lib/utils/format";
 import { TierRepeater } from "./TierRepeater";
 
 export function PoolCreateForm() {
@@ -45,9 +46,16 @@ export function PoolCreateForm() {
 
   useEffect(() => {
     let cancelled = false;
-    listTournaments("upcoming")
+    listTournaments()
       .then((t) => {
-        if (!cancelled) setTournaments(t);
+        if (!cancelled)
+          setTournaments(
+            t.filter(
+              (tournament) =>
+                statusFromDates(tournament.startDate, tournament.endDate) ===
+                "upcoming",
+            ),
+          );
       })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -150,9 +158,7 @@ export function PoolCreateForm() {
         <Select
           label="Tournament"
           placeholder={tournaments ? "Select a tournament" : "Loading…"}
-          data={
-            tournaments?.map((t) => ({ value: t.id, label: t.name })) ?? []
-          }
+          data={tournaments?.map((t) => ({ value: t.id, label: t.name })) ?? []}
           value={tournamentId}
           onChange={setTournamentId}
           disabled={!tournaments || tournaments.length === 0}
@@ -169,9 +175,7 @@ export function PoolCreateForm() {
               <NumberInput
                 label="Count best"
                 value={countBest}
-                onChange={(v) =>
-                  setCountBest(typeof v === "number" ? v : 1)
-                }
+                onChange={(v) => setCountBest(typeof v === "number" ? v : 1)}
                 min={1}
                 max={outOf || 1}
                 w={120}

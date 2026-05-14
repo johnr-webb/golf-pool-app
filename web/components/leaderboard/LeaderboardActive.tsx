@@ -1,72 +1,71 @@
 "use client";
 
-import {
-  Accordion,
-  Badge,
-  Card,
-  Divider,
-  Group,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import type { LeaderboardEntry, TournamentStatus } from "@/lib/types/api";
-import { formatScore } from "@/lib/utils/format";
-import { PlayerScoreRow } from "./PlayerScoreRow";
+import { Accordion, Card, Stack, Text } from "@mantine/core";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import type {
+  EspnEventStatus,
+  LeaderboardEntry,
+  ScoreboardLeader,
+  TournamentStatus,
+} from "@/lib/types/api";
+import { LeaderboardHero } from "./LeaderboardHero";
+import { LeadersTicker } from "./LeadersTicker";
+import { TeamLeaderCard } from "./TeamLeaderCard";
+
+interface Props {
+  entries: LeaderboardEntry[];
+  status: Exclude<TournamentStatus, "upcoming">;
+  tournamentName: string;
+  eventStatus: EspnEventStatus | null;
+  leaders: ScoreboardLeader[];
+}
 
 export function LeaderboardActive({
   entries,
   status,
-}: {
-  entries: LeaderboardEntry[];
-  status: Exclude<TournamentStatus, "upcoming">;
-}) {
-  if (entries.length === 0) {
-    return (
-      <Card withBorder p="xl">
-        <Text c="dimmed" ta="center">
-          No teams to score yet.
-        </Text>
-      </Card>
-    );
-  }
+  tournamentName,
+  eventStatus,
+  leaders,
+}: Props) {
+  const { user } = useAuth();
+
+  const myIndex = user
+    ? entries.findIndex((e) => e.userId === user.uid)
+    : -1;
+  const myRank = myIndex >= 0 ? myIndex + 1 : null;
+  const myScore = myIndex >= 0 ? entries[myIndex].totalScore : null;
 
   return (
-    <Stack gap="sm">
-      <Group gap="xs">
-        <Title order={3}>Leaderboard</Title>
-        <Badge color={status === "active" ? "green" : "blue"} variant="light">
-          {status === "active" ? "Live" : "Final"}
-        </Badge>
-      </Group>
+    <Stack gap="md">
+      <LeaderboardHero
+        tournamentName={tournamentName}
+        status={status}
+        eventStatus={eventStatus}
+        myTeamRank={myRank}
+        myTeamScore={myScore}
+        teamCount={entries.length}
+      />
 
-      <Accordion multiple variant="separated" radius="md">
-        {entries.map((entry, idx) => (
-          <Accordion.Item key={entry.teamId} value={entry.teamId}>
-            <Accordion.Control>
-              <Group justify="space-between" wrap="nowrap">
-                <Group gap="sm" wrap="nowrap">
-                  <Text fw={700} w={28}>
-                    {idx + 1}
-                  </Text>
-                  <Text fw={500} lineClamp={1}>
-                    {entry.teamName}
-                  </Text>
-                </Group>
-                <Text fw={700}>{formatScore(entry.totalScore)}</Text>
-              </Group>
-            </Accordion.Control>
-            <Accordion.Panel>
-              <Divider mb="xs" />
-              <Stack gap={0}>
-                {entry.playerScores.map((p) => (
-                  <PlayerScoreRow key={p.playerId} player={p} />
-                ))}
-              </Stack>
-            </Accordion.Panel>
-          </Accordion.Item>
-        ))}
-      </Accordion>
+      <LeadersTicker leaders={leaders} />
+
+      {entries.length === 0 ? (
+        <Card withBorder p="xl">
+          <Text c="dimmed" ta="center">
+            No teams to score yet.
+          </Text>
+        </Card>
+      ) : (
+        <Accordion multiple variant="separated" radius="md">
+          {entries.map((entry, idx) => (
+            <TeamLeaderCard
+              key={entry.teamId}
+              entry={entry}
+              rank={idx + 1}
+              isMine={!!user && entry.userId === user.uid}
+            />
+          ))}
+        </Accordion>
+      )}
     </Stack>
   );
 }

@@ -6,6 +6,7 @@ import { fetchScoreboard, fetchScoreboardForEvent } from "../services/espn";
 import {
   parseScore,
   applyMissedCutPenalty,
+  buildLeaders,
   calculateTeamScore,
 } from "../services/leaderboard";
 import { EspnScoreboard, LeaderboardEntry } from "../types";
@@ -244,90 +245,12 @@ router.get("/:poolId", requireAuth, async (req: AuthRequest, res) => {
     tournamentStartDate:
       tournament?.startDate?.toDate?.()?.toISOString() ?? null,
     tournamentEndDate: tournament?.endDate?.toDate?.()?.toISOString() ?? null,
-    mastersYear: tournament?.mastersYear ?? null,
     createdBy: pool.createdBy,
     tiers: pool.tiers,
     scoringRule: pool.scoringRule,
     myTeamId,
   });
 });
-
-// GET /pools/:poolId/team-picks — lightweight team+player data for client-side scoring (Masters).
-router.get(
-  "/:poolId/team-picks",
-  requireAuth,
-  async (req: AuthRequest, res) => {
-    const { poolId } = req.params;
-    const poolDoc = await db.collection("pools").doc(poolId).get();
-    if (!poolDoc.exists) {
-      res.status(404).json({ error: "Pool not found" });
-      return;
-    }
-
-    const teamsSnap = await db
-      .collection("teams")
-      .where("poolId", "==", poolId)
-      .get();
-
-    const allPickIds = new Set<string>();
-    const teamData = teamsSnap.docs.map((doc) => {
-      const data = doc.data();
-      const picks: string[] = data.picks || [];
-      picks.forEach((id: string) => allPickIds.add(id));
-      return {
-        teamId: doc.id,
-        teamName: data.name as string,
-        userId: data.userId as string,
-        picks,
-      };
-    });
-
-    const playerSnaps = await Promise.all(
-      [...allPickIds].map((id) => db.collection("players").doc(id).get()),
-    );
-    const playerMap = new Map<string, string>();
-    for (const snap of playerSnaps) {
-      if (snap.exists) playerMap.set(snap.id, snap.data()!.name);
-    }
-
-    // Load full user profiles for display name + real name
-    const uniqueUserIds = [...new Set(teamData.map((t) => t.userId))];
-    const userDocs = await Promise.all(
-      uniqueUserIds.map((uid) => db.collection("users").doc(uid).get()),
-    );
-    const userMap = new Map<
-      string,
-      { displayName: string; realName: string }
-    >();
-    for (const doc of userDocs) {
-      if (doc.exists) {
-        const u = doc.data()!;
-        userMap.set(doc.id, {
-          displayName: (u.displayName as string) || "",
-          realName: (u.realName as string) || "",
-        });
-      }
-    }
-
-    res.set("Cache-Control", "public, s-maxage=300");
-    res.json({
-      teams: teamData.map((t) => {
-        const owner = userMap.get(t.userId);
-        return {
-          teamId: t.teamId,
-          teamName: t.teamName,
-          userId: t.userId,
-          displayName: owner?.displayName ?? "",
-          realName: owner?.realName ?? "",
-          picks: t.picks.map((id) => ({
-            id,
-            name: playerMap.get(id) || "Unknown",
-          })),
-        };
-      }),
-    });
-  },
-);
 
 // GET /pools/:poolId/leaderboard — Get leaderboard.
 // Status is derived from tournament start/end dates.
@@ -366,6 +289,8 @@ router.get(
       else if (now >= startDate) status = "active";
     }
 
+    const tournamentName: string = tournament.name ?? "";
+
     // Get all teams in pool
     const teamsSnap = await db
       .collection("teams")
@@ -376,7 +301,13 @@ router.get(
       res.json(
         status === "upcoming"
           ? { status: "upcoming", teams: [] }
-          : { status, leaderboard: [] },
+          : {
+              status,
+              tournamentName,
+              eventStatus: null,
+              leaders: [],
+              leaderboard: [],
+            },
       );
       return;
     }
@@ -463,6 +394,10 @@ router.get(
     // Apply missed-cut penalty
     const adjustedScores = applyMissedCutPenalty(scoreMap);
 
+    const ownerNameByUserId = await loadOwnerNames(
+      teamsSnap.docs.map((teamDoc) => teamDoc.data().userId as string),
+    );
+
     // Calculate each team's score
     const leaderboard: LeaderboardEntry[] = await Promise.all(
       teamsSnap.docs.map(async (teamDoc) => {
@@ -494,6 +429,7 @@ router.get(
           teamId: teamDoc.id,
           teamName: team.name,
           userId: team.userId,
+          ownerName: ownerNameByUserId.get(team.userId) ?? "Unknown player",
           totalScore: result.totalScore,
           playerScores: result.map((r) => ({
             playerId: r.playerId,
@@ -509,6 +445,8 @@ router.get(
     // Sort by total score ascending (lowest is best in golf)
     leaderboard.sort((a, b) => a.totalScore - b.totalScore);
 
+    const leaders = buildLeaders(competitors, 10);
+
     logRouteStep(
       "GET /pools/:poolId/leaderboard",
       req,
@@ -521,7 +459,13 @@ router.get(
       },
     );
 
-    res.json({ status, leaderboard });
+    res.json({
+      status,
+      tournamentName,
+      eventStatus: scoreboard.eventStatus,
+      leaders,
+      leaderboard,
+    });
   },
 );
 

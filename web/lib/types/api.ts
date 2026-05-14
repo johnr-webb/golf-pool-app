@@ -62,24 +62,6 @@ export interface PoolSummary {
 export interface PoolDetail extends PoolSummary {
   tiers: TierConfig[];
   scoringRule: ScoringRule;
-  mastersYear?: string | null;
-}
-
-// Masters team-picks (client-side scoring)
-export interface TeamPickPlayer {
-  id: string;
-  name: string;
-}
-export interface TeamPick {
-  teamId: string;
-  teamName: string;
-  userId: string;
-  displayName: string;
-  realName: string;
-  picks: TeamPickPlayer[];
-}
-export interface TeamPicksResponse {
-  teams: TeamPick[];
 }
 
 export interface TeamOwner {
@@ -108,6 +90,7 @@ export interface LeaderboardEntry {
   teamId: string;
   teamName: string;
   userId: string;
+  ownerName: string;
   totalScore: number;
   playerScores: PlayerScore[];
 }
@@ -119,10 +102,28 @@ export interface UpcomingTeam extends TeamOwner {
   players: PlayerDetail[];
 }
 
+export interface EspnEventStatus {
+  state: "pre" | "in" | "post";
+  completed: boolean;
+  detail: string;
+  shortDetail: string;
+}
+
+export interface ScoreboardLeader {
+  position: number;
+  name: string;
+  shortName: string;
+  score: string;
+  country: string | null;
+}
+
 export type LeaderboardResponse =
   | { status: "upcoming"; teams: UpcomingTeam[] }
   | {
       status: "active" | "completed";
+      tournamentName: string;
+      eventStatus: EspnEventStatus | null;
+      leaders: ScoreboardLeader[];
       leaderboard: LeaderboardEntry[];
     };
 

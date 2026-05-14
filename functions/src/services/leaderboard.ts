@@ -1,4 +1,4 @@
-import { ScoringRule, LeaderboardEntry } from "../types";
+import { ScoringRule, LeaderboardEntry, EspnCompetitor, ScoreboardLeader } from "../types";
 
 interface PlayerScore {
   playerId: string;
@@ -72,4 +72,36 @@ export function calculateTeamScore(
     .reduce((sum, r) => sum + (r.score ?? 0), 0);
 
   return Object.assign(result, { totalScore });
+}
+
+/**
+ * Pick the top N competitors for the leaders ticker. Sorts by ESPN's `order`
+ * field (1 = leader) and falls back to score-ascending for ties / missing order.
+ * Missed-cut competitors are excluded.
+ */
+export function buildLeaders(
+  competitors: EspnCompetitor[],
+  limit = 10,
+): ScoreboardLeader[] {
+  const playing = competitors.filter(
+    (c) =>
+      c.status?.type?.name !== "STATUS_CUT" &&
+      !c.status?.type?.description?.toLowerCase().includes("cut") &&
+      !c.status?.type?.description?.toLowerCase().includes("withdrawn"),
+  );
+
+  const sorted = [...playing].sort((a, b) => {
+    const aOrder = a.order ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = b.order ?? Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return parseScore(a.score) - parseScore(b.score);
+  });
+
+  return sorted.slice(0, limit).map((c, i) => ({
+    position: c.order ?? i + 1,
+    name: c.athlete.fullName,
+    shortName: c.athlete.shortName ?? c.athlete.displayName,
+    score: c.score,
+    country: c.athlete.flag?.alt ?? null,
+  }));
 }

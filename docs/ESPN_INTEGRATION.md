@@ -229,13 +229,3 @@ async function getLeaderboard(poolId: string) {
 ## Caching
 
 ESPN scores are not cached server-side (always fresh). Client-side TanStack Query handles caching with 30-second stale time.
-
-## Masters.com Alternative
-
-For Masters tournaments, the app can use masters.com directly:
-
-1. Set `mastersYear` on tournament
-2. Client fetches from `web/lib/masters/api.ts`
-3. Client-side scoring (no server involvement)
-
-**Benefits**: More detailed data, hole-by-hole, official Augusta data.

@@ -18,7 +18,6 @@ export interface Tournament {
   endDate: Timestamp;
   cutLine: number | null;
   status: "upcoming" | "active" | "completed";
-  mastersYear?: string;
   createdAt: Timestamp;
 }
 
@@ -68,9 +67,15 @@ export interface Team {
 // ESPN API types
 export interface EspnCompetitor {
   id: string;
+  /** Field position; 1 = leader. ESPN sorts pre-round by tee time. */
+  order?: number;
   athlete: {
     fullName: string;
     displayName: string;
+    shortName?: string;
+    flag?: {
+      alt?: string;
+    };
   };
   score: string;
   status?: {
@@ -102,6 +107,7 @@ export interface LeaderboardEntry {
   teamId: string;
   teamName: string;
   userId: string;
+  ownerName: string;
   totalScore: number;
   playerScores: {
     playerId: string;
@@ -110,4 +116,13 @@ export interface LeaderboardEntry {
     missedCut: boolean;
     counting: boolean;
   }[];
+}
+
+/** Top-of-tournament leader, e.g. for a ticker. */
+export interface ScoreboardLeader {
+  position: number;
+  name: string;
+  shortName: string;
+  score: string;
+  country: string | null;
 }

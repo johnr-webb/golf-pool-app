@@ -37,17 +37,6 @@ export function PoolDetailView({ poolId }: { poolId: string }) {
   if (!pool && isLoading) return <LoadingCard />;
   if (!pool) return null;
 
-  // Masters: skip the pool header, the Masters hero handles it
-  if (pool.mastersYear) {
-    return (
-      <Leaderboard
-        poolId={poolId}
-        mastersYear={pool.mastersYear}
-        scoringRule={pool.scoringRule}
-      />
-    );
-  }
-
   const showCreateTeam =
     statusFromDates(pool.tournamentStartDate, pool.tournamentEndDate) ===
       "upcoming" && !pool.myTeamId;
@@ -105,11 +94,7 @@ export function PoolDetailView({ poolId }: { poolId: string }) {
         </Text>
       </Stack>
 
-      <Leaderboard
-        poolId={poolId}
-        mastersYear={pool.mastersYear}
-        scoringRule={pool.scoringRule}
-      />
+      <Leaderboard poolId={poolId} />
     </Stack>
   );
 }

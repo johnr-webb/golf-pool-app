@@ -6,10 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Button,
   Group,
-  Paper,
   SimpleGrid,
   Stack,
-  Text,
   Title,
 } from "@mantine/core";
 import { IconPlus, IconUsersGroup } from "@tabler/icons-react";
@@ -18,6 +16,7 @@ import { PoolCard } from "./PoolCard";
 import { JoinPoolModal } from "./JoinPoolModal";
 import { ErrorAlert } from "@/components/common/ErrorAlert";
 import { LoadingCard } from "@/components/common/LoadingCard";
+import { EmptyState } from "@/components/common/EmptyState";
 import { useAuth } from "@/lib/auth/AuthProvider";
 
 export function PoolList() {
@@ -73,34 +72,33 @@ export function PoolList() {
       </Group>
 
       {pools.length === 0 ? (
-        <Paper p="xl" withBorder ta="center">
-          <Stack gap="sm" align="center">
-            <Text fw={500}>You&apos;re not in any pools yet.</Text>
-            <Text size="sm" c="dimmed" maw={420}>
-              {isAdmin
-                ? "Create a new pool to get started, or join an existing one with a pool ID and password."
-                : "Ask your pool admin for an invite link, or click \u201CJoin pool\u201D above if they gave you a pool ID and password."}
-            </Text>
-            <Group gap="xs" mt="sm">
+        <EmptyState
+          title="You're not in any pools yet."
+          description={
+            isAdmin
+              ? "Create a new pool to get started, or join an existing one with a pool ID and password."
+              : "Ask your pool admin for an invite link, or click \u201CJoin pool\u201D above if they gave you a pool ID and password."
+          }
+        >
+          <Group gap="xs" mt="sm">
+            <Button
+              variant="default"
+              onClick={() => setJoinOpen(true)}
+              leftSection={<IconUsersGroup size={16} />}
+            >
+              Join pool
+            </Button>
+            {isAdmin && (
               <Button
-                variant="default"
-                onClick={() => setJoinOpen(true)}
-                leftSection={<IconUsersGroup size={16} />}
+                component={Link}
+                href="/pools/new"
+                leftSection={<IconPlus size={16} />}
               >
-                Join pool
+                Create pool
               </Button>
-              {isAdmin && (
-                <Button
-                  component={Link}
-                  href="/pools/new"
-                  leftSection={<IconPlus size={16} />}
-                >
-                  Create pool
-                </Button>
-              )}
-            </Group>
-          </Stack>
-        </Paper>
+            )}
+          </Group>
+        </EmptyState>
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {pools.map((p) => (

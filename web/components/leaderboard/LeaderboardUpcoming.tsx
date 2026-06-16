@@ -2,7 +2,6 @@
 
 import {
   Accordion,
-  Card,
   Group,
   Stack,
   Text,
@@ -11,15 +10,15 @@ import {
 } from "@mantine/core";
 import { IconLock } from "@tabler/icons-react";
 import type { UpcomingTeam } from "@/lib/types/api";
+import { EmptyState } from "@/components/common/EmptyState";
 
 export function LeaderboardUpcoming({ teams }: { teams: UpcomingTeam[] }) {
   if (teams.length === 0) {
     return (
-      <Card withBorder p="xl">
-        <Text c="dimmed" ta="center">
-          Your team will appear here after you create it.
-        </Text>
-      </Card>
+      <EmptyState
+        title="Your team will appear here after you create it."
+        description="Pick your golfers before the tournament tees off to get in the running."
+      />
     );
   }
 

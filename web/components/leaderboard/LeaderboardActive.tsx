@@ -1,7 +1,8 @@
 "use client";
 
-import { Accordion, Card, Stack, Text } from "@mantine/core";
+import { Accordion, Stack } from "@mantine/core";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { EmptyState } from "@/components/common/EmptyState";
 import type {
   EspnEventStatus,
   LeaderboardEntry,
@@ -49,11 +50,10 @@ export function LeaderboardActive({
       <LeadersTicker leaders={leaders} />
 
       {entries.length === 0 ? (
-        <Card withBorder p="xl">
-          <Text c="dimmed" ta="center">
-            No teams to score yet.
-          </Text>
-        </Card>
+        <EmptyState
+          title="No teams to score yet."
+          description="Scores will appear here once teams are in and the tournament is underway."
+        />
       ) : (
         <Accordion multiple variant="separated" radius="md">
           {entries.map((entry, idx) => (

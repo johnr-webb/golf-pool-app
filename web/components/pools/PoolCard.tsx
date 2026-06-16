@@ -15,7 +15,12 @@ export function PoolCard({ pool }: { pool: PoolSummary }) {
   const canEditTeam = status === "upcoming" && !!pool.myTeamId;
 
   return (
-    <Card withBorder padding="md" radius="md">
+    <Card
+      withBorder
+      padding="md"
+      radius="md"
+      style={{ borderTop: "3px solid var(--mantine-color-usoNavy-9)" }}
+    >
       <Stack gap="xs">
         <Group justify="space-between" wrap="nowrap">
           <Text fw={600} size="lg" lineClamp={1}>

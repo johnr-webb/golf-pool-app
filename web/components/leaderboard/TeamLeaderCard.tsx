@@ -26,11 +26,18 @@ export function TeamLeaderCard({ entry, rank, isMine }: Props) {
   const rankBg = RANK_COLOR[rank] ?? "var(--mantine-color-default-hover)";
   const rankFg = RANK_COLOR[rank] ? "#000" : undefined;
 
+  const accentColor = isMine
+    ? "var(--mantine-color-usoNavy-9)"
+    : (RANK_COLOR[rank] ?? "transparent");
+
   return (
     <Accordion.Item
       value={entry.teamId}
       style={{
-        borderLeft: `4px solid ${RANK_COLOR[rank] ?? "transparent"}`,
+        borderLeft: `4px solid ${accentColor}`,
+        background: isMine
+          ? "var(--mantine-color-usoNavy-0)"
+          : undefined,
       }}
     >
       <Accordion.Control>
@@ -58,7 +65,7 @@ export function TeamLeaderCard({ entry, rank, isMine }: Props) {
                   {entry.teamName}
                 </Text>
                 {isMine && (
-                  <Text size="xs" c="dimmed" fw={500}>
+                  <Text size="xs" c="usoRed.6" fw={700}>
                     (you)
                   </Text>
                 )}

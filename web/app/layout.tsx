@@ -7,14 +7,15 @@ import {
 import { Notifications } from "@mantine/notifications";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { QueryProvider } from "@/lib/query/QueryProvider";
+import { theme } from "@/lib/theme";
 
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Golf Pool",
-  description: "PGA tournament pool picks and scoring",
+  title: "U.S. Open Pool",
+  description: "U.S. Open tournament pool picks and scoring",
 };
 
 export default function RootLayout({
@@ -25,10 +26,10 @@ export default function RootLayout({
   return (
     <html lang="en" {...mantineHtmlProps}>
       <head>
-        <ColorSchemeScript />
+        <ColorSchemeScript forceColorScheme="light" />
       </head>
       <body>
-        <MantineProvider defaultColorScheme="auto">
+        <MantineProvider theme={theme} forceColorScheme="light">
           <Notifications position="top-right" />
           <QueryProvider>
             <AuthProvider>{children}</AuthProvider>

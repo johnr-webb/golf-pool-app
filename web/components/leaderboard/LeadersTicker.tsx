@@ -20,9 +20,14 @@ export function LeadersTicker({ leaders }: { leaders: ScoreboardLeader[] }) {
   if (leaders.length === 0) return null;
 
   return (
-    <Card withBorder padding="xs" radius="md">
+    <Card
+      withBorder
+      padding="xs"
+      radius="md"
+      style={{ borderTop: "3px solid var(--mantine-color-usoRed-6)" }}
+    >
       <Stack gap={6}>
-        <Text size="xs" c="dimmed" tt="uppercase" fw={700} px={6}>
+        <Text size="xs" c="usoNavy.9" tt="uppercase" fw={800} px={6}>
           Tournament leaders
         </Text>
         <Group
@@ -43,7 +48,7 @@ export function LeadersTicker({ leaders }: { leaders: ScoreboardLeader[] }) {
                 px={10}
                 py={6}
                 style={{
-                  background: "var(--mantine-color-default-hover)",
+                  background: "var(--mantine-color-usoNavy-0)",
                   borderRadius: 999,
                   flexShrink: 0,
                 }}

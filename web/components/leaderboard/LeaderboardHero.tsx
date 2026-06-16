@@ -38,11 +38,16 @@ export function LeaderboardHero({
   const detail = eventStatus?.detail || eventStatus?.shortDetail || "";
 
   return (
-    <Card withBorder padding="lg" radius="md">
+    <Card
+      withBorder
+      padding="lg"
+      radius="md"
+      style={{ borderTop: "4px solid var(--mantine-color-usoNavy-9)" }}
+    >
       <Stack gap="xs">
         <Group justify="space-between" wrap="nowrap" gap="xs">
           <Stack gap={2}>
-            <Text fw={700} size="lg" lineClamp={1}>
+            <Text fw={800} size="lg" lineClamp={1} c="usoNavy.9">
               {tournamentName || "Tournament"}
             </Text>
             {detail && (
@@ -52,7 +57,7 @@ export function LeaderboardHero({
             )}
           </Stack>
           <Badge
-            color={status === "active" ? "green" : "blue"}
+            color={status === "active" ? "usoRed.6" : "usoNavy.9"}
             variant="filled"
             size="md"
           >

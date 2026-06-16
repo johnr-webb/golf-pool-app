@@ -3,7 +3,7 @@
 // Any divergence = bug. If backend validation changes, update this file too.
 
 import type { PlayerDetail, TierConfig } from "@/lib/types/api";
-import { oddsInRange } from "@/lib/utils/odds";
+import { oddsInRange, parseOdds } from "@/lib/utils/odds";
 
 export interface TierStatus {
   tier: TierConfig;
@@ -35,6 +35,12 @@ export function groupPlayersByTier(
     } else {
       unassigned.push(player);
     }
+  }
+
+  // Order each tier by odds (favorites/shortest odds first) so the picker
+  // lists players by odds rather than arbitrary API/document order.
+  for (const list of byTier.values()) {
+    list.sort((a, b) => parseOdds(a.odds) - parseOdds(b.odds));
   }
 
   return { byTier, unassigned };

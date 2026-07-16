@@ -95,18 +95,44 @@ firebase apphosting:backends:list
    - Start/End dates
 4. Save
 
+To also pull the player roster from ESPN at creation time, pass
+`populatePlayers: true` (requires `espnEventId`) — see the scripted flow below.
+
 ### Adding Players
 
-1. Navigate to tournament
-2. Use bulk add or import odds
-3. Trigger ESPN sync
+Two approaches:
 
-### Importing Odds
+- **ESPN-first (recommended once ESPN has published the field):** create the
+  roster straight from the ESPN field, then layer odds on. Players are created
+  with their ESPN athlete id already linked, so no separate sync step is needed.
+- **Manual:** bulk add players with odds, then trigger ESPN sync to link ids.
+
+See `docs/ESPN_INTEGRATION.md` for the full flow and endpoint details.
+
+### Importing a New Tournament (ESPN-first, scripted)
+
+`scripts/import-the-open.sh` runs the whole ESPN-first flow end to end:
+create tournament + populate players from ESPN, then append odds from
+the-odds-api. Event metadata comes from `data/the_open_roster.json` (adapt/copy
+for other events).
 
 ```bash
-# Using the API
+API_BASE="http://127.0.0.1:5001/golf-pool-app-492300/us-central1/api" \
+ADMIN_TOKEN="<admin-id-token>" \
+ODDS_API_KEY="<the-odds-api-key>" \
+  ./scripts/import-the-open.sh
+```
+
+### Importing Odds (onto an existing roster)
+
+Appends odds to existing players by name match (unmatched entries create new
+players). Safe to run against an ESPN-populated roster.
+
+```bash
 curl -X POST http://localhost:5001/.../tournaments/:id/import-odds \
-  -H "Authorization: Bearer <admin-token>"
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"sportKey": "golf_the_open_championship_winner"}'
 ```
 
 ### Manual ESPN Linking

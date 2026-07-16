@@ -1,0 +1,789 @@
+{
+  "espnEventId": "401811957",
+  "name": "The Open",
+  "startDate": "2026-07-16T04:00Z",
+  "endDate": "2026-07-19T04:00Z",
+  "playerCount": 156,
+  "players": [
+    {
+      "name": "Thomas Detry",
+      "espnId": "4837",
+      "odds": "+17500"
+    },
+    {
+      "name": "Matthew Baldwin",
+      "espnId": "5832",
+      "odds": "+100000"
+    },
+    {
+      "name": "James Nicholas",
+      "espnId": "4683800",
+      "odds": "+100000"
+    },
+    {
+      "name": "Andy Sullivan",
+      "espnId": "5956",
+      "odds": "+50000"
+    },
+    {
+      "name": "Michael Kim",
+      "espnId": "8974",
+      "odds": "+17500"
+    },
+    {
+      "name": "Daniel Hillier",
+      "espnId": "4425899",
+      "odds": "+35000"
+    },
+    {
+      "name": "Ryan Fox",
+      "espnId": "4251",
+      "odds": "+15000"
+    },
+    {
+      "name": "Andrew Novak",
+      "espnId": "11332",
+      "odds": "+17500"
+    },
+    {
+      "name": "Matthew Jordan",
+      "espnId": "4390719",
+      "odds": "+25000"
+    },
+    {
+      "name": "Henrik Stenson",
+      "espnId": "576",
+      "odds": "+100000"
+    },
+    {
+      "name": "Joe Dean",
+      "espnId": "6970",
+      "odds": "+75000"
+    },
+    {
+      "name": "Max Homa",
+      "espnId": "8973",
+      "odds": "+17500"
+    },
+    {
+      "name": "Rickie Fowler",
+      "espnId": "3702",
+      "odds": "+10000"
+    },
+    {
+      "name": "Robert MacIntyre",
+      "espnId": "11378",
+      "odds": "+2700"
+    },
+    {
+      "name": "Alex Fitzpatrick",
+      "espnId": "4364865",
+      "odds": "+6000"
+    },
+    {
+      "name": "David Duval",
+      "espnId": "115",
+      "odds": "+100000"
+    },
+    {
+      "name": "Matthew Southgate",
+      "espnId": "5852",
+      "odds": "+100000"
+    },
+    {
+      "name": "Martin Couvra",
+      "espnId": "5102625",
+      "odds": "+100000"
+    },
+    {
+      "name": "Daniel Brown",
+      "espnId": "1407",
+      "odds": "+35000"
+    },
+    {
+      "name": "Sungjae Im",
+      "espnId": "11382",
+      "odds": "+22500"
+    },
+    {
+      "name": "Fifa Laopakdee",
+      "espnId": "5327297",
+      "odds": "+100000"
+    },
+    {
+      "name": "Gary Woodland",
+      "espnId": "3550",
+      "odds": "+17500"
+    },
+    {
+      "name": "Jordan Smith",
+      "espnId": "9506",
+      "odds": "+15000"
+    },
+    {
+      "name": "Jake Knapp",
+      "espnId": "9843",
+      "odds": "+17500"
+    },
+    {
+      "name": "Francesco Molinari",
+      "espnId": "1483",
+      "odds": "+50000"
+    },
+    {
+      "name": "Tom McKibbin",
+      "espnId": "4348444",
+      "odds": "+12500"
+    },
+    {
+      "name": "Lev Grinberg",
+      "espnId": "5062278",
+      "odds": "+100000"
+    },
+    {
+      "name": "Hennie Du Plessis",
+      "espnId": "9899",
+      "odds": "+35000"
+    },
+    {
+      "name": "Dan Bradbury",
+      "espnId": "5081630",
+      "odds": "+100000"
+    },
+    {
+      "name": "Josele Ballester",
+      "espnId": "5152205",
+      "odds": "+75000"
+    },
+    {
+      "name": "Victor Perez",
+      "espnId": "11340",
+      "odds": "+12500"
+    },
+    {
+      "name": "Angel Ayora",
+      "espnId": "5105333",
+      "odds": "+22500"
+    },
+    {
+      "name": "Mateo Pulcini",
+      "espnId": "5344763",
+      "odds": "+100000"
+    },
+    {
+      "name": "Stewart Cink",
+      "espnId": "78",
+      "odds": "+25000"
+    },
+    {
+      "name": "Joakim Lagergren",
+      "espnId": "5727",
+      "odds": "+100000"
+    },
+    {
+      "name": "Scott Vincent",
+      "espnId": "9963",
+      "odds": "+35000"
+    },
+    {
+      "name": "Travis Smyth",
+      "espnId": "11345",
+      "odds": "+100000"
+    },
+    {
+      "name": "Michael Thorbjornsen",
+      "espnId": "4425904",
+      "odds": "+17500"
+    },
+    {
+      "name": "Kota Kaneko",
+      "espnId": "5312609",
+      "odds": "+100000"
+    },
+    {
+      "name": "Alex Smalley",
+      "espnId": "9484",
+      "odds": "+15000"
+    },
+    {
+      "name": "Sam Stevens",
+      "espnId": "4426181",
+      "odds": "+22500"
+    },
+    {
+      "name": "Ryo Hisatsune",
+      "espnId": "4858572",
+      "odds": "+22500"
+    },
+    {
+      "name": "Harris English",
+      "espnId": "5408",
+      "odds": "+8000"
+    },
+    {
+      "name": "Rasmus H\u00f8jgaard",
+      "espnId": "11253",
+      "odds": "+22500"
+    },
+    {
+      "name": "Akshay Bhatia",
+      "espnId": "4419142",
+      "odds": "+10000"
+    },
+    {
+      "name": "Hideki Matsuyama",
+      "espnId": "5860",
+      "odds": "+7000"
+    },
+    {
+      "name": "Ben Griffin",
+      "espnId": "4404992",
+      "odds": "+8000"
+    },
+    {
+      "name": "Min Woo Lee",
+      "espnId": "4410932",
+      "odds": "+5500"
+    },
+    {
+      "name": "Justin Rose",
+      "espnId": "569",
+      "odds": "+3300"
+    },
+    {
+      "name": "Russell Henley",
+      "espnId": "5409",
+      "odds": "+4500"
+    },
+    {
+      "name": "Viktor Hovland",
+      "espnId": "4364873",
+      "odds": "+3000"
+    },
+    {
+      "name": "Jason Day",
+      "espnId": "1680",
+      "odds": "+17500"
+    },
+    {
+      "name": "Alex Noren",
+      "espnId": "3832",
+      "odds": "+10000"
+    },
+    {
+      "name": "Justin Thomas",
+      "espnId": "4848",
+      "odds": "+4500"
+    },
+    {
+      "name": "Tyrrell Hatton",
+      "espnId": "5553",
+      "odds": "+3300"
+    },
+    {
+      "name": "Scottie Scheffler",
+      "espnId": "9478",
+      "odds": "+750"
+    },
+    {
+      "name": "Bryson DeChambeau",
+      "espnId": "10046",
+      "odds": "+6500"
+    },
+    {
+      "name": "Jordan Spieth",
+      "espnId": "5467",
+      "odds": "+10000"
+    },
+    {
+      "name": "Tommy Fleetwood",
+      "espnId": "5539",
+      "odds": "+1500"
+    },
+    {
+      "name": "Jon Rahm",
+      "espnId": "9780",
+      "odds": "+2000"
+    },
+    {
+      "name": "Brian Harman",
+      "espnId": "1225",
+      "odds": "+10000"
+    },
+    {
+      "name": "Nick Taylor",
+      "espnId": "3792",
+      "odds": "+17500"
+    },
+    {
+      "name": "Si Woo Kim",
+      "espnId": "7081",
+      "odds": "+4000"
+    },
+    {
+      "name": "Maverick McNealy",
+      "espnId": "9530",
+      "odds": "+10000"
+    },
+    {
+      "name": "David Puig",
+      "espnId": "4895429",
+      "odds": "+22500"
+    },
+    {
+      "name": "Ryan Gerard",
+      "espnId": "5076021",
+      "odds": "+10000"
+    },
+    {
+      "name": "Thomas Sloman",
+      "espnId": "11270",
+      "odds": "+100000"
+    },
+    {
+      "name": "Kazuma Kobori",
+      "espnId": "5186648",
+      "odds": "+75000"
+    },
+    {
+      "name": "David Howard",
+      "espnId": "5369476",
+      "odds": "+100000"
+    },
+    {
+      "name": "Antoine Rozner",
+      "espnId": "4407372",
+      "odds": "+75000"
+    },
+    {
+      "name": "Ren Yonezawa",
+      "espnId": "4699328",
+      "odds": "+100000"
+    },
+    {
+      "name": "Caleb Surratt",
+      "espnId": "5110034",
+      "odds": "+100000"
+    },
+    {
+      "name": "Jack McDonald",
+      "espnId": "6849",
+      "odds": "+100000"
+    },
+    {
+      "name": "MJ Daffue",
+      "espnId": "7110",
+      "odds": "+100000"
+    },
+    {
+      "name": "Frederic LaCroix",
+      "espnId": "4592246",
+      "odds": "+100000"
+    },
+    {
+      "name": "Jeong-Woo Ham",
+      "espnId": "4592199",
+      "odds": "+100000"
+    },
+    {
+      "name": "Ryutaro Nagano",
+      "espnId": "4699375",
+      "odds": "+100000"
+    },
+    {
+      "name": "Alejandro de Castro Piera",
+      "espnId": "5369475",
+      "odds": "+100000"
+    },
+    {
+      "name": "John Parry",
+      "espnId": "4671",
+      "odds": "+22500"
+    },
+    {
+      "name": "Eric Cole",
+      "espnId": "10522",
+      "odds": "+17500"
+    },
+    {
+      "name": "Tiger Christensen",
+      "espnId": "5146173",
+      "odds": "+100000"
+    },
+    {
+      "name": "Matt Wallace",
+      "espnId": "10548",
+      "odds": "+12500"
+    },
+    {
+      "name": "Max Greyserman",
+      "espnId": "11101",
+      "odds": "+22500"
+    },
+    {
+      "name": "Eugenio Chacarra",
+      "espnId": "4565467",
+      "odds": "+12500"
+    },
+    {
+      "name": "Laurie Canter",
+      "espnId": "5550",
+      "odds": "+22500"
+    },
+    {
+      "name": "Sahith Theegala",
+      "espnId": "10980",
+      "odds": "+17500"
+    },
+    {
+      "name": "Michael Brennan",
+      "espnId": "4921329",
+      "odds": "+25000"
+    },
+    {
+      "name": "Keith Mitchell",
+      "espnId": "8906",
+      "odds": "+17500"
+    },
+    {
+      "name": "Cameron Smith",
+      "espnId": "9131",
+      "odds": "+12500"
+    },
+    {
+      "name": "Stuart Grehan",
+      "espnId": "5364787",
+      "odds": "+100000"
+    },
+    {
+      "name": "Sepp Straka",
+      "espnId": "8961",
+      "odds": "+17500"
+    },
+    {
+      "name": "Kurt Kitayama",
+      "espnId": "10364",
+      "odds": "+10000"
+    },
+    {
+      "name": "Joaqu\u00edn Niemann",
+      "espnId": "11099",
+      "odds": "+5500"
+    },
+    {
+      "name": "Shaun Norris",
+      "espnId": "5057",
+      "odds": "+50000"
+    },
+    {
+      "name": "Sami V\u00e4lim\u00e4ki",
+      "espnId": "4585548",
+      "odds": "+25000"
+    },
+    {
+      "name": "Jackson Suber",
+      "espnId": "4982182",
+      "odds": "+35000"
+    },
+    {
+      "name": "Darren Clarke",
+      "espnId": "82",
+      "odds": "+100000"
+    },
+    {
+      "name": "Bernd Wiesberger",
+      "espnId": "4317",
+      "odds": "+35000"
+    },
+    {
+      "name": "Adrien Saddier",
+      "espnId": "6962",
+      "odds": "+75000"
+    },
+    {
+      "name": "Keegan Bradley",
+      "espnId": "4513",
+      "odds": "+10000"
+    },
+    {
+      "name": "Corey Conners",
+      "espnId": "9126",
+      "odds": "+12500"
+    },
+    {
+      "name": "Casey Jarvis",
+      "espnId": "4610056",
+      "odds": "+17500"
+    },
+    {
+      "name": "Haotong Li",
+      "espnId": "9221",
+      "odds": "+22500"
+    },
+    {
+      "name": "Harry Hall",
+      "espnId": "4589438",
+      "odds": "+17500"
+    },
+    {
+      "name": "Matt McCarty",
+      "espnId": "4901368",
+      "odds": "+25000"
+    },
+    {
+      "name": "Padraig Harrington",
+      "espnId": "186",
+      "odds": "+75000"
+    },
+    {
+      "name": "Michael Hollick",
+      "espnId": "7067",
+      "odds": "+100000"
+    },
+    {
+      "name": "Marco Penge",
+      "espnId": "4585549",
+      "odds": "+17500"
+    },
+    {
+      "name": "Billy Horschel",
+      "espnId": "1651",
+      "odds": "+35000"
+    },
+    {
+      "name": "Tom Kim",
+      "espnId": "4602673",
+      "odds": "+4500"
+    },
+    {
+      "name": "Mason Howell",
+      "espnId": "5289811",
+      "odds": "+100000"
+    },
+    {
+      "name": "Keita Nakajima",
+      "espnId": "4699418",
+      "odds": "+50000"
+    },
+    {
+      "name": "Pierceson Coody",
+      "espnId": "4837368",
+      "odds": "+22500"
+    },
+    {
+      "name": "Johnny Keefer",
+      "espnId": "5217048",
+      "odds": "+17500"
+    },
+    {
+      "name": "Jesper Svensson",
+      "espnId": "4699329",
+      "odds": "+50000"
+    },
+    {
+      "name": "Aldrich Potgieter",
+      "espnId": "5080439",
+      "odds": "+22500"
+    },
+    {
+      "name": "Jack Buchanan",
+      "espnId": "5337673",
+      "odds": "+100000"
+    },
+    {
+      "name": "Bud Cauley",
+      "espnId": "5338",
+      "odds": "+15000"
+    },
+    {
+      "name": "Lucas Herbert",
+      "espnId": "10343",
+      "odds": "+25000"
+    },
+    {
+      "name": "Jayden Schaper",
+      "espnId": "4604053",
+      "odds": "+25000"
+    },
+    {
+      "name": "Patrick Reed",
+      "espnId": "5579",
+      "odds": "+5000"
+    },
+    {
+      "name": "J.T. Poston",
+      "espnId": "10505",
+      "odds": "+15000"
+    },
+    {
+      "name": "Kristoffer Reitan",
+      "espnId": "4348470",
+      "odds": "+10000"
+    },
+    {
+      "name": "Adam Scott",
+      "espnId": "388",
+      "odds": "+10000"
+    },
+    {
+      "name": "Sam Burns",
+      "espnId": "9938",
+      "odds": "+4500"
+    },
+    {
+      "name": "Chris Gotterup",
+      "espnId": "4690755",
+      "odds": "+3300"
+    },
+    {
+      "name": "J.J. Spaun",
+      "espnId": "10166",
+      "odds": "+6500"
+    },
+    {
+      "name": "Collin Morikawa",
+      "espnId": "10592",
+      "odds": "+3500"
+    },
+    {
+      "name": "Nicolai H\u00f8jgaard",
+      "espnId": "11250",
+      "odds": "+10000"
+    },
+    {
+      "name": "Shane Lowry",
+      "espnId": "4587",
+      "odds": "+4500"
+    },
+    {
+      "name": "Brooks Koepka",
+      "espnId": "6798",
+      "odds": "+7000"
+    },
+    {
+      "name": "Aaron Rai",
+      "espnId": "10906",
+      "odds": "+6000"
+    },
+    {
+      "name": "Wyndham Clark",
+      "espnId": "11119",
+      "odds": "+3500"
+    },
+    {
+      "name": "Ludvig \u00c5berg",
+      "espnId": "4375972",
+      "odds": "+3300"
+    },
+    {
+      "name": "Cameron Young",
+      "espnId": "4425906",
+      "odds": "+3500"
+    },
+    {
+      "name": "Rory McIlroy",
+      "espnId": "3470",
+      "odds": "+950"
+    },
+    {
+      "name": "Matt Fitzpatrick",
+      "espnId": "9037",
+      "odds": "+1500"
+    },
+    {
+      "name": "Xander Schauffele",
+      "espnId": "10140",
+      "odds": "+2500"
+    },
+    {
+      "name": "Rasmus Neergaard-Petersen",
+      "espnId": "4858859",
+      "odds": "+22500"
+    },
+    {
+      "name": "Jacob Bridgeman",
+      "espnId": "5054388",
+      "odds": "+17500"
+    },
+    {
+      "name": "Tim Wiedemeyer",
+      "espnId": "5147926",
+      "odds": "+100000"
+    },
+    {
+      "name": "Patrick Cantlay",
+      "espnId": "6007",
+      "odds": "+5500"
+    },
+    {
+      "name": "Daniel Berger",
+      "espnId": "9025",
+      "odds": "+35000"
+    },
+    {
+      "name": "Nico Echavarria",
+      "espnId": "4408316",
+      "odds": "+25000"
+    },
+    {
+      "name": "Peter Uihlein",
+      "espnId": "1674",
+      "odds": "+100000"
+    },
+    {
+      "name": "Francesco Laporta",
+      "espnId": "5716",
+      "odds": "+75000"
+    },
+    {
+      "name": "Alistair Docherty",
+      "espnId": "4425907",
+      "odds": "+100000"
+    },
+    {
+      "name": "Austen Truslow",
+      "espnId": "9379",
+      "odds": "+100000"
+    },
+    {
+      "name": "Cameron John",
+      "espnId": "4368981",
+      "odds": "+100000"
+    },
+    {
+      "name": "Sam Bairstow",
+      "espnId": "4872728",
+      "odds": "+100000"
+    },
+    {
+      "name": "Naoyuki Kataoka",
+      "espnId": "4837226",
+      "odds": "+100000"
+    },
+    {
+      "name": "Marcus Plunkett",
+      "espnId": "5075661",
+      "odds": "+100000"
+    },
+    {
+      "name": "Bard Bjornevik Skogen",
+      "espnId": "5289694",
+      "odds": "+100000"
+    },
+    {
+      "name": "Kazuki Higa",
+      "espnId": "4597553",
+      "odds": "+100000"
+    },
+    {
+      "name": "Jiho Yang",
+      "espnId": "5143177",
+      "odds": "+100000"
+    },
+    {
+      "name": "Nevill Ruiter",
+      "espnId": "5289808",
+      "odds": "+100000"
+    }
+  ]
+}

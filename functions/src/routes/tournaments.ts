@@ -4,13 +4,74 @@ import { AuthRequest, requireAuth, requireAdmin } from "../middleware/auth";
 import {
   fetchScoreboard,
   fetchScoreboardForEvent,
+  fetchEventScoreboard,
   matchPlayers,
+  normalizeName,
 } from "../services/espn";
 import { fetchOdds, aggregateOdds } from "../services/odds";
 import { FieldValue } from "firebase-admin/firestore";
 import { logRouteAck, logRouteError, logRouteStep } from "../utils/logging";
 
 const router = Router();
+
+interface PopulatedPlayer {
+  id: string;
+  name: string;
+  espnId: string;
+}
+
+/**
+ * Fetch the field for an ESPN event and create a player doc for every
+ * competitor that isn't already on the tournament. Players are created with
+ * their ESPN athlete id already linked (`espnMapped: true`) and an empty odds
+ * string — odds are set separately (manual edit or the-odds-api import).
+ *
+ * Idempotent: existing players (matched by espnId) are skipped, so it can be
+ * re-run to pick up late field additions.
+ */
+async function populateEspnPlayers(
+  tournamentId: string,
+  espnEventId: string,
+): Promise<{ created: PopulatedPlayer[]; skipped: number }> {
+  const scoreboard = await fetchEventScoreboard(espnEventId);
+
+  const existingSnap = await db
+    .collection("players")
+    .where("tournamentId", "==", tournamentId)
+    .get();
+  const existingEspnIds = new Set(
+    existingSnap.docs.map((d) => d.data().espnId).filter(Boolean),
+  );
+
+  const batch = db.batch();
+  const created: PopulatedPlayer[] = [];
+  let skipped = 0;
+
+  for (const c of scoreboard.competitors) {
+    const name = c.athlete?.fullName;
+    if (!name || !c.id) continue;
+    if (existingEspnIds.has(c.id)) {
+      skipped++;
+      continue;
+    }
+    const ref = db.collection("players").doc();
+    batch.set(ref, {
+      name,
+      normalizedName: normalizeName(name),
+      odds: "",
+      tournamentId,
+      espnId: c.id,
+      espnMapped: true,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    created.push({ id: ref.id, name, espnId: c.id });
+  }
+
+  if (created.length > 0) {
+    await batch.commit();
+  }
+  return { created, skipped };
+}
 
 // GET /tournaments — List tournaments (any signed-in user).
 // Optional ?status=upcoming|active|completed filter. Sorted by startDate asc.
@@ -76,16 +137,24 @@ router.get(
 
 // POST /tournaments — Create tournament (admin only)
 router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
-  const { name, espnEventId, startDate, endDate } = req.body;
+  const { name, espnEventId, startDate, endDate, populatePlayers } = req.body;
   logRouteAck("POST /tournaments", req, {
     name: name ?? null,
     hasEspnEventId: Boolean(espnEventId),
+    populatePlayers: Boolean(populatePlayers),
   });
 
   if (!name || !startDate || !endDate) {
     res
       .status(400)
       .json({ error: "name, startDate, and endDate are required" });
+    return;
+  }
+
+  if (populatePlayers && !espnEventId) {
+    res.status(400).json({
+      error: "populatePlayers requires espnEventId to fetch the ESPN field",
+    });
     return;
   }
 
@@ -99,8 +168,103 @@ router.post("/", requireAuth, requireAdmin, async (req: AuthRequest, res) => {
     createdAt: FieldValue.serverTimestamp(),
   });
 
+  // Optionally seed the player roster straight from the ESPN field. Player
+  // creation failure must not fail tournament creation — the tournament is
+  // already committed — so surface it as a warning instead.
+  if (populatePlayers && espnEventId) {
+    try {
+      logRouteStep("POST /tournaments", req, "populating players from ESPN", {
+        tournamentId: doc.id,
+        espnEventId,
+      });
+      const { created } = await populateEspnPlayers(doc.id, espnEventId);
+      res.status(201).json({ id: doc.id, playersCreated: created.length });
+      return;
+    } catch (error) {
+      logRouteError(
+        "POST /tournaments",
+        req,
+        "failed to populate players from ESPN",
+        error,
+        { tournamentId: doc.id, espnEventId },
+      );
+      res.status(201).json({
+        id: doc.id,
+        playersCreated: 0,
+        warning:
+          "Tournament created, but populating players from ESPN failed. " +
+          "Retry via POST /tournaments/:id/populate-espn-players.",
+      });
+      return;
+    }
+  }
+
   res.status(201).json({ id: doc.id });
 });
+
+// POST /tournaments/:tournamentId/populate-espn-players — Create the player
+// roster from the ESPN field for this tournament's espnEventId (admin only).
+// Idempotent: already-linked players are skipped. Odds are left blank.
+router.post(
+  "/:tournamentId/populate-espn-players",
+  requireAuth,
+  requireAdmin,
+  async (req: AuthRequest, res) => {
+    const { tournamentId } = req.params;
+    logRouteAck("POST /tournaments/:tournamentId/populate-espn-players", req, {
+      tournamentId,
+    });
+
+    const tournDoc = await db.collection("tournaments").doc(tournamentId).get();
+    if (!tournDoc.exists) {
+      res.status(404).json({ error: "Tournament not found" });
+      return;
+    }
+
+    // Body espnEventId overrides the stored one (e.g. it wasn't set at create).
+    const espnEventId =
+      req.body?.espnEventId || tournDoc.data()!.espnEventId;
+    if (!espnEventId) {
+      res.status(400).json({
+        error:
+          "Tournament has no espnEventId. Set it on the tournament or pass espnEventId in the body.",
+      });
+      return;
+    }
+
+    let result;
+    try {
+      logRouteStep(
+        "POST /tournaments/:tournamentId/populate-espn-players",
+        req,
+        "fetching ESPN field and creating players",
+        { tournamentId, espnEventId },
+      );
+      result = await populateEspnPlayers(tournamentId, espnEventId);
+    } catch (error) {
+      logRouteError(
+        "POST /tournaments/:tournamentId/populate-espn-players",
+        req,
+        "failed to populate players from ESPN",
+        error,
+        { tournamentId, espnEventId },
+      );
+      res.status(502).json({ error: "Failed to fetch ESPN field" });
+      return;
+    }
+
+    if (result.created.length === 0 && result.skipped === 0) {
+      res.status(502).json({ error: "No competitors returned from ESPN" });
+      return;
+    }
+
+    res.status(201).json({
+      created: result.created.length,
+      skipped: result.skipped,
+      players: result.created,
+    });
+  },
+);
 
 // POST /tournaments/:tournamentId/players — Bulk add players (admin only)
 router.post(
@@ -161,8 +325,10 @@ router.post(
   },
 );
 
-// POST /tournaments/:tournamentId/import-odds — Fetch odds from the-odds-api and
-// bulk-create players for this tournament (admin only).
+// POST /tournaments/:tournamentId/import-odds — Fetch odds from the-odds-api for
+// this tournament (admin only). Odds are appended to existing players when their
+// name matches (e.g. a roster already populated from the ESPN field); unmatched
+// odds entries create new players.
 // Body: { sportKey: string, apiKey?: string }
 // sportKey examples: "golf_masters_tournament_winner", "golf_pga_championship_winner"
 // apiKey is optional — falls back to ODDS_API_KEY env var.
@@ -200,19 +366,32 @@ router.post(
       return;
     }
 
-    // Check if players already exist for this tournament
+    // Load existing players so odds can be merged onto them (e.g. a roster
+    // already populated from the ESPN field). Match by normalized name, with a
+    // unique-last-name fallback for spelling variants ("Matt" vs "Matthew").
+    // Players with no odds match are created fresh, same as before.
     const existingSnap = await db
       .collection("players")
       .where("tournamentId", "==", tournamentId)
-      .limit(1)
       .get();
 
-    if (!existingSnap.empty) {
-      res.status(409).json({
-        error:
-          "Players already exist for this tournament. Delete them first or use the manual bulk endpoint.",
-      });
-      return;
+    const existingByNorm = new Map<
+      string,
+      FirebaseFirestore.QueryDocumentSnapshot
+    >();
+    const lastNameCounts = new Map<string, number>();
+    const existingByLastName = new Map<
+      string,
+      FirebaseFirestore.QueryDocumentSnapshot
+    >();
+    for (const d of existingSnap.docs) {
+      const data = d.data();
+      const norm =
+        (data.normalizedName as string) || normalizeName(data.name as string);
+      if (!existingByNorm.has(norm)) existingByNorm.set(norm, d);
+      const ln = norm.split(" ").pop() ?? "";
+      lastNameCounts.set(ln, (lastNameCounts.get(ln) ?? 0) + 1);
+      existingByLastName.set(ln, d);
     }
 
     // Fetch and aggregate odds
@@ -262,32 +441,68 @@ router.post(
       },
     );
     const batch = db.batch();
-    const ids: string[] = [];
+    const results: {
+      id: string;
+      name: string;
+      odds: string;
+      bookmakerCount: number;
+      action: "updated" | "created";
+    }[] = [];
 
     for (const p of players) {
-      const ref = db.collection("players").doc();
-      ids.push(ref.id);
-      batch.set(ref, {
-        name: p.name,
-        normalizedName: p.normalizedName,
-        odds: p.odds,
-        tournamentId,
-        espnId: null,
-        espnMapped: false,
-        createdAt: FieldValue.serverTimestamp(),
-      });
+      // Match this odds entry to an existing player: normalized name first,
+      // then a unique last name.
+      let existing = existingByNorm.get(p.normalizedName);
+      if (!existing) {
+        const ln = p.normalizedName.split(" ").pop() ?? "";
+        if (ln && lastNameCounts.get(ln) === 1) {
+          existing = existingByLastName.get(ln);
+        }
+      }
+
+      if (existing) {
+        // Append odds to the existing player, keeping any ESPN link intact.
+        batch.update(existing.ref, {
+          odds: p.odds,
+          normalizedName: p.normalizedName,
+        });
+        results.push({
+          id: existing.id,
+          name: existing.data().name as string,
+          odds: p.odds,
+          bookmakerCount: p.bookmakerCount,
+          action: "updated",
+        });
+      } else {
+        const ref = db.collection("players").doc();
+        batch.set(ref, {
+          name: p.name,
+          normalizedName: p.normalizedName,
+          odds: p.odds,
+          tournamentId,
+          espnId: null,
+          espnMapped: false,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        results.push({
+          id: ref.id,
+          name: p.name,
+          odds: p.odds,
+          bookmakerCount: p.bookmakerCount,
+          action: "created",
+        });
+      }
     }
 
     await batch.commit();
 
+    const updated = results.filter((r) => r.action === "updated").length;
+    const created = results.filter((r) => r.action === "created").length;
     res.status(201).json({
-      playerCount: ids.length,
-      players: players.map((p, i) => ({
-        id: ids[i],
-        name: p.name,
-        odds: p.odds,
-        bookmakerCount: p.bookmakerCount,
-      })),
+      playerCount: results.length,
+      updated,
+      created,
+      players: results,
     });
   },
 );

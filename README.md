@@ -99,6 +99,22 @@ When running under the emulator, `functions/src/services/espn.ts` reads scoreboa
 
 Override the fixture path with the `ESPN_FIXTURE_PATH` env var if you want to point at a different dump.
 
+### Importing a new tournament from ESPN
+
+`scripts/import-the-open.sh` sets up a tournament end to end: it creates the
+tournament, populates the player roster straight from the ESPN field (ESPN ids
+linked, blank odds), then appends odds from the-odds-api. Event metadata comes
+from `data/the_open_roster.json` — copy/adapt it for other events.
+
+```bash
+API_BASE="http://127.0.0.1:5001/golf-pool-app-492300/us-central1/api" \
+ADMIN_TOKEN="<admin-id-token>" \
+ODDS_API_KEY="<the-odds-api-key>" \
+  ./scripts/import-the-open.sh
+```
+
+See `docs/ESPN_INTEGRATION.md` for the endpoints behind it and `docs/DEVELOPER_GUIDE.md` for the manual alternative.
+
 ### Testing the edit-lock flow
 
 Team picks are only editable while a tournament is in `upcoming` status. To test the lock:

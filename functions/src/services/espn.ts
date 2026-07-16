@@ -19,19 +19,14 @@ const DEFAULT_EVENT_STATUS: EspnEventStatus = {
   shortDetail: "",
 };
 
-/** Extract the full scoreboard from a parsed ESPN JSON response. */
-function parseScoreboardData(data: Record<string, unknown>): EspnScoreboard {
-  const events = data.events as Array<Record<string, unknown>> | undefined;
-  if (!events || events.length === 0) {
-    return { competitors: [], eventStatus: DEFAULT_EVENT_STATUS, startDate: null, endDate: null };
-  }
-  const event = events[0];
+/** Extract scoreboard fields from a single ESPN event object. */
+function parseEventData(event: Record<string, unknown>): EspnScoreboard {
   const competitions = (event.competitions as Array<Record<string, unknown>>) || [];
   const competitors = competitions.length > 0
     ? (competitions[0].competitors as EspnCompetitor[]) || []
     : [];
 
-  // Event-level status lives at events[0].status.type
+  // Event-level status lives at event.status.type
   const statusObj = event.status as Record<string, unknown> | undefined;
   const statusType = statusObj?.type as Record<string, unknown> | undefined;
   const eventStatus: EspnEventStatus = statusType
@@ -49,6 +44,26 @@ function parseScoreboardData(data: Record<string, unknown>): EspnScoreboard {
     startDate: (event.startDate as string) ?? (event.date as string) ?? null,
     endDate: (event.endDate as string) ?? null,
   };
+}
+
+/**
+ * Extract the full scoreboard from a parsed ESPN JSON response.
+ *
+ * Handles both response shapes:
+ * - The list scoreboard endpoint wraps the event in `events[]`.
+ * - The per-event path endpoint (/scoreboard/{eventId}) returns the event object
+ *   directly (no `events[]` wrapper) — this is the shape used by our data dumps.
+ */
+function parseScoreboardData(data: Record<string, unknown>): EspnScoreboard {
+  const events = data.events as Array<Record<string, unknown>> | undefined;
+  if (events && events.length > 0) {
+    return parseEventData(events[0]);
+  }
+  // Unwrapped single-event shape (path endpoint / recorded event dumps).
+  if (data.competitions || data.id) {
+    return parseEventData(data);
+  }
+  return { competitors: [], eventStatus: DEFAULT_EVENT_STATUS, startDate: null, endDate: null };
 }
 
 /**
@@ -99,6 +114,25 @@ export async function fetchScoreboardForEvent(
   if (fixture !== null) return fixture;
 
   const res = await fetch(`${SCOREBOARD_URL}?event=${espnEventId}`);
+  if (!res.ok) {
+    throw new Error(`ESPN API returned ${res.status}`);
+  }
+  const data = await res.json() as Record<string, unknown>;
+  return parseScoreboardData(data);
+}
+
+/**
+ * Fetch the scoreboard for a specific event via the path-style endpoint
+ * (`/scoreboard/{eventId}`), which returns the full field for that event. Used
+ * to populate a tournament's player roster straight from ESPN at creation time.
+ */
+export async function fetchEventScoreboard(
+  espnEventId: string
+): Promise<EspnScoreboard> {
+  const fixture = loadFixtureScoreboard();
+  if (fixture !== null) return fixture;
+
+  const res = await fetch(`${SCOREBOARD_URL}/${espnEventId}`);
   if (!res.ok) {
     throw new Error(`ESPN API returned ${res.status}`);
   }

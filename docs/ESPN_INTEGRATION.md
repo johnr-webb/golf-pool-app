@@ -19,6 +19,72 @@ Admin Actions:
 
 **Why?** Players and odds are entered before ESPN publishes the field, so we wire up ESPN athlete IDs separately.
 
+#### Alternative: populate the roster straight from the ESPN field
+
+Once ESPN has published the field, you can skip manual player entry and build the
+roster from ESPN directly. Players are created with their ESPN athlete id already
+linked (`espnMapped: true`) and **blank odds**; odds are layered on afterward.
+
+```
+Admin Actions (ESPN-first):
+1. Create tournament with populatePlayers: true   → roster created + ESPN-linked
+2. Import odds                                      → odds appended by name match
+3. Manual link / manual odds for any stragglers
+```
+
+**Populate at create time** — `POST /tournaments` with `populatePlayers: true`
+(requires `espnEventId`). Fetches the field via the path-style endpoint and
+creates a player per competitor. If the ESPN fetch fails, the tournament is
+still created and the response carries a `warning`.
+
+```jsonc
+// POST /tournaments
+{ "name": "The Open", "espnEventId": "401811957",
+  "startDate": "2026-07-16T04:00Z", "endDate": "2026-07-19T04:00Z",
+  "populatePlayers": true }
+// → { "id": "<tournamentId>", "playersCreated": 156 }
+```
+
+**Populate after the fact** — `POST /tournaments/:tournamentId/populate-espn-players`
+(admin). Uses the tournament's stored `espnEventId`, or an `espnEventId` in the
+body to override. Idempotent: players already linked by `espnId` are skipped, so
+it can be re-run to pick up late field additions.
+
+```typescript
+POST /tournaments/:tournamentId/populate-espn-players
+Body (optional): { espnEventId?: string }
+
+Response: {
+  created: number;
+  skipped: number;                                 // already-linked players
+  players: Array<{ id, name, espnId }>;
+}
+```
+
+#### Appending odds to an existing roster
+
+`POST /tournaments/:tournamentId/import-odds` fetches outright odds from
+the-odds-api and **merges them onto existing players by name** (normalized name,
+then a unique-last-name fallback). A matched player has its `odds` updated with
+its ESPN link left intact; an unmatched odds entry creates a new player. This is
+what lets the ESPN-first flow above end up with both ESPN ids *and* odds.
+
+```typescript
+POST /tournaments/:tournamentId/import-odds
+Body: { sportKey: string, apiKey?: string }   // apiKey falls back to ODDS_API_KEY
+
+Response: {
+  playerCount: number;                          // total odds entries processed
+  updated: number;                              // matched onto existing players
+  created: number;                              // no match — new player created
+  players: Array<{ id, name, odds, bookmakerCount, action: "updated" | "created" }>;
+}
+```
+
+> **Caveat:** an odds entry whose name doesn't match an existing player (and whose
+> last name isn't unique in the field) is created as a **duplicate** rather than
+> merged. The `created` list surfaces exactly those for manual cleanup.
+
 ### Phase 2: Live Scoring (User)
 
 During/after tournament, users view leaderboards.
@@ -37,7 +103,13 @@ User Actions:
 ```
 GET https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard
 GET https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=<espnEventId>
+GET https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard/<espnEventId>
 ```
+
+The last (path-style) form returns the event object **directly**, without the
+`events[]` wrapper the other two use. `services/espn.ts` parses both shapes, so
+`fetchEventScoreboard()` (path form) and `fetchScoreboardForEvent()` (`?event=`)
+are interchangeable for our purposes.
 
 **Response Schema**: See `docs/schema-3-5.json`
 

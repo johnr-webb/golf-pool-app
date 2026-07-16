@@ -402,6 +402,15 @@ paths:
                   type: string
                   format: date-time
                   example: "2026-04-13T20:00:00Z"
+                populatePlayers:
+                  type: boolean
+                  description: >
+                    When true, the player roster is populated straight from the
+                    ESPN field for `espnEventId` (each player created with its
+                    ESPN id linked and blank odds). Requires `espnEventId`. If
+                    the ESPN fetch fails, the tournament is still created and the
+                    response carries a `warning`.
+                  example: true
       responses:
         "201":
           description: Tournament created
@@ -413,6 +422,13 @@ paths:
                   id:
                     type: string
                     example: "abc123"
+                  playersCreated:
+                    type: integer
+                    description: Present when `populatePlayers` was requested.
+                    example: 156
+                  warning:
+                    type: string
+                    description: Present if create-time ESPN population failed.
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -499,6 +515,142 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /tournaments/{tournamentId}/populate-espn-players:
+    post:
+      summary: Populate the roster from the ESPN field
+      description: |
+        **Admin only.** Fetches the ESPN field for the tournament's `espnEventId`
+        (path-style scoreboard endpoint) and creates a player per competitor with
+        its ESPN athlete id already linked (`espnMapped: true`) and blank odds.
+        Idempotent — players already linked by `espnId` are skipped. Layer odds on
+        afterward via `import-odds`.
+      tags: [Tournaments]
+      parameters:
+        - in: path
+          name: tournamentId
+          required: true
+          schema:
+            type: string
+          example: "abc123"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                espnEventId:
+                  type: string
+                  description: Overrides the tournament's stored espnEventId.
+                  example: "401811957"
+      responses:
+        "201":
+          description: Players populated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created:
+                    type: integer
+                    example: 156
+                  skipped:
+                    type: integer
+                    description: Players already linked by espnId.
+                    example: 0
+                  players:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        espnId: { type: string }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          description: ESPN fetch failed or returned no competitors.
+
+  /tournaments/{tournamentId}/import-odds:
+    post:
+      summary: Import odds from the-odds-api and merge onto the roster
+      description: |
+        **Admin only.** Fetches outright winner odds from the-odds-api and appends
+        them to existing players matched by name (normalized name, then a
+        unique-last-name fallback). A matched player has its `odds` updated with
+        its ESPN link left intact; an unmatched odds entry creates a new player.
+      tags: [Tournaments]
+      parameters:
+        - in: path
+          name: tournamentId
+          required: true
+          schema:
+            type: string
+          example: "abc123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sportKey]
+              properties:
+                sportKey:
+                  type: string
+                  description: the-odds-api sport key for the tournament's winner market.
+                  example: "golf_the_open_championship_winner"
+                apiKey:
+                  type: string
+                  description: the-odds-api key. Falls back to the ODDS_API_KEY env var.
+      responses:
+        "201":
+          description: Odds imported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  playerCount:
+                    type: integer
+                    description: Total odds entries processed.
+                    example: 96
+                  updated:
+                    type: integer
+                    description: Odds merged onto existing players.
+                    example: 90
+                  created:
+                    type: integer
+                    description: Odds names with no roster match — new players created.
+                    example: 6
+                  players:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        odds: { type: string }
+                        bookmakerCount: { type: integer }
+                        action:
+                          type: string
+                          enum: [updated, created]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          description: the-odds-api fetch failed or returned no usable odds.
 
   /tournaments/{tournamentId}/sync-espn:
     post:
